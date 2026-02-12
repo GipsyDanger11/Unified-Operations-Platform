@@ -1,0 +1,37 @@
+{
+    "name": "unified-ops-backend",
+    "version": "1.0.0",
+    "description": "Backend API for Unified Operations Platform",
+    "type": "module",
+    "main": "server.js",
+    "scripts": {
+        "dev": "node --watch server.js",
+        "start": "node server.js",
+        "test": "echo \"Error: no test specified\" && exit 1"
+    },
+    "keywords": [
+        "operations",
+        "saas",
+        "service-business"
+    ],
+    "author": "",
+    "license": "ISC",
+    "dependencies": {
+        "@aws-sdk/client-s3": "^3.988.0",
+        "@aws-sdk/s3-request-presigner": "^3.988.0",
+        "@sendgrid/mail": "^8.1.0",
+        "bcryptjs": "^2.4.3",
+        "cors": "^2.8.5",
+        "dotenv": "^16.3.1",
+        "express": "^4.18.2",
+        "express-validator": "^7.0.1",
+        "googleapis": "^171.4.0",
+        "jsonwebtoken": "^9.0.2",
+        "mongoose": "^8.0.0",
+        "node-cron": "^3.0.3",
+        "twilio": "^4.20.0"
+    },
+    "devDependencies": {
+        "nodemon": "^3.0.2"
+    }
+}
