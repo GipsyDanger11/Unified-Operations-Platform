@@ -1,0 +1,11 @@
+# Todo
+- #3: Build onboarding wizard (steps 1-4: workspace, communication, contact form, booking)
+- #4: Build onboarding wizard (steps 5-8: post-booking forms, inventory, staff, activation)
+- #5: Build business owner dashboard with real-time metrics
+- #6: Build inbox system with unified email/SMS threads
+- #7: Build bookings management with calendar view
+- #8: Build forms tracking module
+- #9: Build inventory module
+- #10: Build automation & event engine viewer
+- #11: Add responsive behavior and access control
+- #12: Add demo mode with mock data generators
