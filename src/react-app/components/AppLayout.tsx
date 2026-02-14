@@ -1,12 +1,12 @@
-import { ReactNode, useState } from "react";
+import { ReactNode, useState, useEffect } from "react";
 import { Link, useLocation } from "react-router";
-import { 
-  LayoutDashboard, 
-  MessageSquare, 
-  Calendar, 
-  FileText, 
-  Package, 
-  Users, 
+import {
+  LayoutDashboard,
+  MessageSquare,
+  Calendar,
+  FileText,
+  Package,
+  Users,
   Settings,
   Zap,
   Bell,
@@ -27,6 +27,7 @@ import {
   DropdownMenuTrigger,
 } from "@/react-app/components/ui/dropdown-menu";
 import WaveBackground from "@/react-app/components/WaveBackground";
+import { api } from "@/react-app/lib/api";
 
 interface AppLayoutProps {
   children: ReactNode;
@@ -52,11 +53,27 @@ const alerts = [
 export default function AppLayout({ children }: AppLayoutProps) {
   const location = useLocation();
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [user, setUser] = useState<any>(null);
+
+  useEffect(() => {
+    fetchUser();
+  }, []);
+
+  const fetchUser = async () => {
+    try {
+      const data = await api.getMe();
+      if (data?.user) {
+        setUser(data.user);
+      }
+    } catch (error) {
+      console.error("Failed to fetch user profile", error);
+    }
+  };
 
   return (
     <div className="min-h-screen relative">
       <WaveBackground />
-      
+
       <div className="relative z-10 flex h-screen">
         {/* Sidebar */}
         <aside
@@ -89,7 +106,7 @@ export default function AppLayout({ children }: AppLayoutProps) {
               {navigation.map((item) => {
                 const isActive = location.pathname === item.href;
                 const Icon = item.icon;
-                
+
                 return (
                   <Link
                     key={item.name}
@@ -97,10 +114,9 @@ export default function AppLayout({ children }: AppLayoutProps) {
                     onClick={() => setSidebarOpen(false)}
                     className={`
                       flex items-center justify-between px-4 py-3 rounded-xl transition-all group
-                      ${
-                        isActive
-                          ? "bg-gradient-to-r from-purple-500 to-purple-600 text-white shadow-lg shadow-purple-500/30"
-                          : "text-purple-700 hover:bg-purple-50 hover:text-purple-900"
+                      ${isActive
+                        ? "bg-gradient-to-r from-purple-500 to-purple-600 text-white shadow-lg shadow-purple-500/30"
+                        : "text-purple-700 hover:bg-purple-50 hover:text-purple-900"
                       }
                     `}
                   >
@@ -211,13 +227,12 @@ export default function AppLayout({ children }: AppLayoutProps) {
                         <DropdownMenuItem key={alert.id} className="flex flex-col items-start gap-1 p-3">
                           <div className="flex items-center gap-2 w-full">
                             <div
-                              className={`w-2 h-2 rounded-full ${
-                                alert.type === "urgent"
+                              className={`w-2 h-2 rounded-full ${alert.type === "urgent"
                                   ? "bg-red-500"
                                   : alert.type === "warning"
-                                  ? "bg-yellow-500"
-                                  : "bg-blue-500"
-                              }`}
+                                    ? "bg-yellow-500"
+                                    : "bg-blue-500"
+                                }`}
                             />
                             <span className="text-sm flex-1">{alert.message}</span>
                           </div>
@@ -237,17 +252,21 @@ export default function AppLayout({ children }: AppLayoutProps) {
                     <Button variant="ghost" className="gap-2 hover:bg-purple-50 px-2">
                       <Avatar className="w-8 h-8">
                         <AvatarFallback className="bg-gradient-to-br from-purple-500 to-purple-600 text-white text-sm font-medium">
-                          JD
+                          {user ? `${user.firstName[0]}${user.lastName[0]}` : 'JD'}
                         </AvatarFallback>
                       </Avatar>
-                      <span className="hidden md:inline font-medium text-purple-900">John Doe</span>
+                      <span className="hidden md:inline font-medium text-purple-900">
+                        {user ? `${user.firstName} ${user.lastName}` : 'Loading...'}
+                      </span>
                       <ChevronDown className="w-4 h-4 text-purple-600" />
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end" className="w-56">
                     <DropdownMenuLabel>
-                      <div>John Doe</div>
-                      <div className="text-xs font-normal text-muted-foreground">john@acme.com</div>
+                      <div>{user ? `${user.firstName} ${user.lastName}` : 'John Doe'}</div>
+                      <div className="text-xs font-normal text-muted-foreground">
+                        {user ? user.email : 'john@acme.com'}
+                      </div>
                     </DropdownMenuLabel>
                     <DropdownMenuSeparator />
                     <DropdownMenuItem>Profile settings</DropdownMenuItem>

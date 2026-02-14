@@ -2,20 +2,14 @@ import mongoose from 'mongoose';
 
 const workspaceSchema = new mongoose.Schema({
     businessName: { type: String, required: true },
-    address: {
-        street: String,
-        city: String,
-        state: String,
-        zipCode: String,
-        country: String,
-    },
+    address: { type: mongoose.Schema.Types.Mixed },
     timezone: { type: String, required: true, default: 'UTC' },
     contactEmail: { type: String, required: true },
     contactPhone: String,
 
     // Onboarding tracking
     onboardingStep: { type: Number, default: 1, min: 1, max: 8 },
-    isActive: { type: Boolean, default: false },
+    isActive: { type: Boolean, default: true },
 
     // Owner reference
     owner: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },

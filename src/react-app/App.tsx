@@ -16,6 +16,9 @@ import PublicContactPage from "@/react-app/pages/PublicContact";
 import PublicBookingPage from "@/react-app/pages/PublicBooking";
 import PublicFormPage from "@/react-app/pages/PublicForm";
 
+import { ToastContainer } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
+
 export default function App() {
   return (
     <Router>
@@ -38,6 +41,7 @@ export default function App() {
         <Route path="/automation" element={<AppLayout><AutomationPage /></AppLayout>} />
         <Route path="/settings" element={<AppLayout><SettingsPage /></AppLayout>} />
       </Routes>
+      <ToastContainer position="top-right" autoClose={3000} />
     </Router>
   );
 }

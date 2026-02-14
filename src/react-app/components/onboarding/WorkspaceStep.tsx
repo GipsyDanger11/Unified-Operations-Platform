@@ -11,9 +11,10 @@ interface WorkspaceStepProps {
   onNext: (data: Record<string, any>) => void;
   onBack: () => void;
   isFirstStep: boolean;
+  isLastStep?: boolean;
 }
 
-export default function WorkspaceStep({ data, onNext, isFirstStep }: WorkspaceStepProps) {
+export default function WorkspaceStep({ data, onNext }: WorkspaceStepProps) {
   const [formData, setFormData] = useState({
     businessName: data.businessName || "",
     address: data.address || "",

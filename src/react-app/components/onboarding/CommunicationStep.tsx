@@ -10,6 +10,8 @@ interface CommunicationStepProps {
   data: Record<string, any>;
   onNext: (data: Record<string, any>) => void;
   onBack: () => void;
+  isFirstStep?: boolean;
+  isLastStep?: boolean;
 }
 
 type ConnectionStatus = "idle" | "connecting" | "connected" | "failed";

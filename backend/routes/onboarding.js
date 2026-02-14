@@ -39,24 +39,28 @@ router.get('/status', authenticate, async (req, res) => {
 // Step 1: Update workspace details
 router.post('/step1', authenticate, requireOwner, async (req, res) => {
     try {
+        console.log('Step 1 update request:', req.body);
         const { businessName, address, timezone, contactEmail, contactPhone } = req.body;
 
         const workspace = await Workspace.findByIdAndUpdate(
             req.user.workspace,
             {
-                businessName,
-                address,
-                timezone,
-                contactEmail,
-                contactPhone,
-                onboardingStep: Math.max(2, workspace?.onboardingStep || 1),
+                $set: {
+                    businessName,
+                    address,
+                    timezone,
+                    contactEmail,
+                    contactPhone,
+                },
+                $max: { onboardingStep: 2 },
             },
             { new: true }
         );
 
         res.json({ message: 'Workspace details updated', workspace });
     } catch (error) {
-        res.status(500).json({ error: 'Failed to update workspace' });
+        console.error('Step 1 update error:', error);
+        res.status(500).json({ error: 'Failed to update workspace', details: error.message });
     }
 });
 
@@ -121,9 +125,11 @@ router.post('/step2', authenticate, requireOwner, async (req, res) => {
         const workspace = await Workspace.findByIdAndUpdate(
             req.user.workspace,
             {
-                'integrations.emailConfigured': integration.email.isConfigured,
-                'integrations.smsConfigured': integration.sms.isConfigured,
-                onboardingStep: Math.max(3, workspace?.onboardingStep || 2),
+                $set: {
+                    'integrations.emailConfigured': integration.email.isConfigured,
+                    'integrations.smsConfigured': integration.sms.isConfigured,
+                },
+                $max: { onboardingStep: 3 },
             },
             { new: true }
         );
@@ -153,8 +159,8 @@ router.post('/step3', authenticate, requireOwner, async (req, res) => {
         const workspace = await Workspace.findByIdAndUpdate(
             req.user.workspace,
             {
-                hasContactForm: true,
-                onboardingStep: Math.max(4, workspace?.onboardingStep || 3),
+                $set: { hasContactForm: true },
+                $max: { onboardingStep: 4 },
             },
             { new: true }
         );
@@ -186,8 +192,8 @@ router.post('/step4', authenticate, requireOwner, async (req, res) => {
         const workspace = await Workspace.findByIdAndUpdate(
             req.user.workspace,
             {
-                hasBookingTypes: true,
-                onboardingStep: Math.max(5, workspace?.onboardingStep || 4),
+                $set: { hasBookingTypes: true },
+                $max: { onboardingStep: 5 },
             },
             { new: true }
         );
@@ -239,7 +245,7 @@ router.post('/step/:stepNumber', authenticate, requireOwner, async (req, res) =>
 
         const workspace = await Workspace.findByIdAndUpdate(
             req.user.workspace,
-            { onboardingStep: Math.max(stepNumber + 1, workspace?.onboardingStep || stepNumber) },
+            { $max: { onboardingStep: stepNumber + 1 } },
             { new: true }
         );
 

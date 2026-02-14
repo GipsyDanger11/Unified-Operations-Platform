@@ -2,7 +2,7 @@ import express from 'express';
 import bcrypt from 'bcryptjs';
 import User from '../models/User.js';
 import Workspace from '../models/Workspace.js';
-import { generateToken } from '../middleware/auth.js';
+import { generateToken, authenticate } from '../middleware/auth.js';
 
 const router = express.Router();
 
@@ -110,6 +110,35 @@ router.post('/login', async (req, res) => {
     } catch (error) {
         console.error('Login error:', error);
         res.status(500).json({ error: 'Login failed', message: error.message });
+    }
+});
+
+// Get current user
+router.get('/me', authenticate, async (req, res) => {
+    try {
+        const user = await User.findById(req.user.id).select('-password').populate('workspace');
+        if (!user) {
+            return res.status(404).json({ error: 'User not found' });
+        }
+        res.json({
+            user: {
+                id: user._id,
+                email: user.email,
+                firstName: user.firstName,
+                lastName: user.lastName,
+                role: user.role,
+                workspace: user.workspace?._id,
+                permissions: user.permissions,
+            },
+            workspace: user.workspace ? {
+                id: user.workspace._id,
+                businessName: user.workspace.businessName,
+                onboardingStep: user.workspace.onboardingStep,
+                isActive: user.workspace.isActive,
+            } : null,
+        });
+    } catch (error) {
+        res.status(500).json({ error: 'Failed to fetch user' });
     }
 });
 

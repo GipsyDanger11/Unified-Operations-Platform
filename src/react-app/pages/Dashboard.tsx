@@ -35,16 +35,19 @@ export default function DashboardPage() {
   const [metrics, setMetrics] = useState<DashboardMetrics | null>(null);
   const [alerts, setAlerts] = useState<DashboardAlert[]>([]);
   const [loading, setLoading] = useState(true);
+  const [recentConversations, setRecentConversations] = useState<any[]>([]);
 
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const [metricsData, alertsWrapper] = await Promise.all([
+        const [metricsData, alertsWrapper, conversationsData] = await Promise.all([
           api.getDashboardMetrics(),
-          api.getDashboardAlerts()
+          api.getDashboardAlerts(),
+          api.getConversations()
         ]);
         setMetrics(metricsData);
         setAlerts(alertsWrapper.alerts || []);
+        setRecentConversations(conversationsData.slice(0, 5)); // Top 5 recent
       } catch (error) {
         console.error("Failed to fetch dashboard data:", error);
       } finally {
@@ -106,26 +109,46 @@ export default function DashboardPage() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <Card className="lg:col-span-2 bg-white/80 backdrop-blur-sm border-purple-200">
           <CardHeader>
-            <CardTitle className="text-purple-950">Recent Activity</CardTitle>
+            <CardTitle className="text-purple-950">Recent Messages</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-sm text-purple-700">
-              {/* Activity feed placeholder - would normally fetch from api.getDashboardActivity() */}
-              <div className="space-y-4">
-                {metrics?.bookings.today ? (
-                  <div className="flex items-start gap-3">
-                    <div className="mt-1 bg-purple-100 p-1.5 rounded-full text-purple-600">
-                      <Calendar className="w-4 h-4" />
+            <div className="space-y-4">
+              {recentConversations.length > 0 ? (
+                recentConversations.map((conv) => (
+                  <Link
+                    to={`/inbox?conversationId=${conv._id}`}
+                    key={conv._id}
+                    className="flex items-start gap-4 p-3 rounded-lg hover:bg-purple-50 transition-colors border border-transparent hover:border-purple-100"
+                  >
+                    <div className="mt-1">
+                      <div className="w-10 h-10 rounded-full bg-purple-100 flex items-center justify-center text-purple-700 font-bold">
+                        {conv.contact.firstName[0]}
+                      </div>
                     </div>
-                    <div>
-                      <p className="font-medium text-purple-900">You have {metrics.bookings.today} bookings today</p>
-                      <p className="text-xs text-purple-500">Check your calendar for details</p>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex justify-between items-start">
+                        <p className="font-semibold text-purple-900 truncate">
+                          {conv.contact.firstName} {conv.contact.lastName}
+                        </p>
+                        <span className="text-xs text-purple-400 whitespace-nowrap">
+                          {conv.lastMessageAt ? new Date(conv.lastMessageAt).toLocaleDateString() : ''}
+                        </span>
+                      </div>
+                      <p className="text-sm text-gray-600 truncate mt-0.5">
+                        {conv.lastMessage || "No messages"}
+                      </p>
                     </div>
-                  </div>
-                ) : (
-                  <p className="text-purple-500 italic">No recent activity to show.</p>
-                )}
-              </div>
+                    {conv.unreadCount > 0 && (
+                      <div className="w-2 h-2 rounded-full bg-purple-600 mt-2" />
+                    )}
+                  </Link>
+                ))
+              ) : (
+                <div className="text-center py-8 text-gray-500">
+                  <MessageSquare className="w-8 h-8 mx-auto mb-2 text-gray-300" />
+                  <p>No recent messages</p>
+                </div>
+              )}
             </div>
           </CardContent>
         </Card>
@@ -143,8 +166,8 @@ export default function DashboardPage() {
                 {alerts.map((alert, index) => (
                   <Link to={alert.link} key={index} className="block">
                     <div className={`p-3 rounded-lg border transition-colors hover:opacity-90 ${alert.type === 'error' ? 'bg-red-50 border-red-200 text-red-800' :
-                        alert.type === 'warning' ? 'bg-yellow-50 border-yellow-200 text-yellow-800' :
-                          'bg-blue-50 border-blue-200 text-blue-800'
+                      alert.type === 'warning' ? 'bg-yellow-50 border-yellow-200 text-yellow-800' :
+                        'bg-blue-50 border-blue-200 text-blue-800'
                       }`}>
                       {alert.message}
                     </div>

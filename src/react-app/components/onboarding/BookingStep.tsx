@@ -4,7 +4,7 @@ import { Button } from "@/react-app/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/react-app/components/ui/card";
 import { Input } from "@/react-app/components/ui/input";
 import { Label } from "@/react-app/components/ui/label";
-import { Switch } from "@/react-app/components/ui/switch";
+// Switch removed as it was unused
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/react-app/components/ui/select";
 import { Badge } from "@/react-app/components/ui/badge";
 
@@ -12,6 +12,8 @@ interface BookingStepProps {
   data: Record<string, any>;
   onNext: (data: Record<string, any>) => void;
   onBack: () => void;
+  isFirstStep?: boolean;
+  isLastStep?: boolean;
 }
 
 const timeSlots = [
@@ -163,10 +165,9 @@ export default function BookingStep({ data, onNext, onBack }: BookingStepProps) 
                       onClick={() => toggleDay(day)}
                       className={`
                         px-3 py-2 rounded-lg text-sm font-medium transition-all
-                        ${
-                          availableDays.includes(day)
-                            ? "bg-gradient-to-r from-purple-500 to-purple-600 text-white shadow-lg shadow-purple-500/30"
-                            : "bg-white border-2 border-purple-200 text-purple-700 hover:border-purple-300"
+                        ${availableDays.includes(day)
+                          ? "bg-gradient-to-r from-purple-500 to-purple-600 text-white shadow-lg shadow-purple-500/30"
+                          : "bg-white border-2 border-purple-200 text-purple-700 hover:border-purple-300"
                         }
                       `}
                     >

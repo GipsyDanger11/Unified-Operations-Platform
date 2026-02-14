@@ -5,7 +5,7 @@ import { Button } from "@/react-app/components/ui/button";
 import { Card, CardDescription, CardHeader, CardTitle, CardContent, CardFooter } from "@/react-app/components/ui/card";
 import { Input } from "@/react-app/components/ui/input";
 import { Label } from "@/react-app/components/ui/label";
-import { Sparkles, LayoutDashboard, MessageSquare, Calendar, FileText, Package, Users, Settings, LogIn, ArrowRight, Loader2 } from "lucide-react";
+import { Sparkles, LayoutDashboard, MessageSquare, Calendar, FileText, Package, Users, Settings, ArrowRight, Loader2 } from "lucide-react";
 import { api } from "@/react-app/lib/api";
 
 export default function HomePage() {
@@ -186,6 +186,114 @@ export default function HomePage() {
           </div>
         </div>
 
+        {/* Customer Flows Section */}
+        <div className="container mx-auto px-6 py-16 bg-gradient-to-br from-purple-50/50 to-indigo-50/50 rounded-3xl my-12">
+          <div className="text-center mb-12">
+            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/80 backdrop-blur-sm border border-purple-200 shadow-sm mb-4">
+              <Users className="w-4 h-4 text-purple-600" />
+              <span className="text-sm font-medium text-purple-900">Customer Journey</span>
+            </div>
+            <h2 className="text-4xl font-bold text-purple-950 mb-4">Two Ways Customers Connect</h2>
+            <p className="text-lg text-purple-700 max-w-2xl mx-auto">
+              No login required. Customers interact through forms, booking pages, and automated messages.
+            </p>
+          </div>
+
+          <div className="grid lg:grid-cols-2 gap-8 max-w-6xl mx-auto">
+            {/* Flow A: Contact First */}
+            <Card className="bg-white/80 backdrop-blur-sm border-purple-200 shadow-xl hover:shadow-2xl transition-all">
+              <CardHeader className="border-b border-purple-100 bg-gradient-to-br from-blue-50 to-purple-50">
+                <div className="flex items-center gap-3 mb-2">
+                  <div className="w-10 h-10 rounded-full bg-blue-500 text-white flex items-center justify-center font-bold shadow-lg">
+                    A
+                  </div>
+                  <CardTitle className="text-2xl text-purple-950">Contact First</CardTitle>
+                </div>
+                <CardDescription className="text-purple-700">
+                  Customer reaches out, then books a service
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="pt-6 space-y-4">
+                <FlowStep number={1} title="Customer submits contact form" icon={<FileText className="w-4 h-4" />} />
+                <FlowStep
+                  number={2}
+                  title="System creates contact & conversation"
+                  subtitle="Sends automated welcome message"
+                  icon={<MessageSquare className="w-4 h-4" />}
+                  automated
+                />
+                <FlowStep number={3} title="Staff replies to inquiry" icon={<Users className="w-4 h-4" />} />
+                <FlowStep number={4} title="Staff shares booking link" icon={<ArrowRight className="w-4 h-4" />} />
+                <FlowStep
+                  number={5}
+                  title="Customer books appointment"
+                  subtitle="Confirmation & forms sent automatically"
+                  icon={<Calendar className="w-4 h-4" />}
+                  automated
+                />
+              </CardContent>
+            </Card>
+
+            {/* Flow B: Book First */}
+            <Card className="bg-white/80 backdrop-blur-sm border-purple-200 shadow-xl hover:shadow-2xl transition-all">
+              <CardHeader className="border-b border-purple-100 bg-gradient-to-br from-purple-50 to-indigo-50">
+                <div className="flex items-center gap-3 mb-2">
+                  <div className="w-10 h-10 rounded-full bg-purple-500 text-white flex items-center justify-center font-bold shadow-lg">
+                    B
+                  </div>
+                  <CardTitle className="text-2xl text-purple-950">Book First</CardTitle>
+                </div>
+                <CardDescription className="text-purple-700">
+                  Customer books directly without prior contact
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="pt-6 space-y-4">
+                <FlowStep number={1} title="Customer opens booking page" icon={<Calendar className="w-4 h-4" />} />
+                <FlowStep number={2} title="Selects date & time" icon={<Calendar className="w-4 h-4" />} />
+                <FlowStep number={3} title="Enters contact details" icon={<FileText className="w-4 h-4" />} />
+                <FlowStep
+                  number={4}
+                  title="System automation runs"
+                  subtitle="Creates contact, booking, sends confirmation, assigns forms, schedules reminders"
+                  icon={<Sparkles className="w-4 h-4" />}
+                  automated
+                />
+                <div className="pt-2 px-4 py-3 bg-green-50 border border-green-200 rounded-lg">
+                  <p className="text-sm font-medium text-green-800 flex items-center gap-2">
+                    <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span>
+                    Everything happens automatically—zero manual work!
+                  </p>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Key Benefits */}
+          <div className="mt-12 grid md:grid-cols-3 gap-6 max-w-4xl mx-auto">
+            <div className="text-center p-6 bg-white/60 backdrop-blur-sm rounded-xl border border-purple-100">
+              <div className="w-12 h-12 bg-purple-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                <MessageSquare className="w-6 h-6 text-purple-600" />
+              </div>
+              <h3 className="font-semibold text-purple-950 mb-2">No Customer Login</h3>
+              <p className="text-sm text-purple-700">Customers interact via forms, booking pages, email & SMS only</p>
+            </div>
+            <div className="text-center p-6 bg-white/60 backdrop-blur-sm rounded-xl border border-purple-100">
+              <div className="w-12 h-12 bg-indigo-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                <Sparkles className="w-6 h-6 text-indigo-600" />
+              </div>
+              <h3 className="font-semibold text-purple-950 mb-2">Smart Automation</h3>
+              <p className="text-sm text-purple-700">Welcome messages, confirmations, and reminders sent automatically</p>
+            </div>
+            <div className="text-center p-6 bg-white/60 backdrop-blur-sm rounded-xl border border-purple-100">
+              <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                <Users className="w-6 h-6 text-blue-600" />
+              </div>
+              <h3 className="font-semibold text-purple-950 mb-2">Staff in Control</h3>
+              <p className="text-sm text-purple-700">Staff manages everything from the unified dashboard</p>
+            </div>
+          </div>
+        </div>
+
         {/* Features Grid */}
         <div className="container mx-auto px-6 pb-20 mt-10">
           <div className="text-center mb-12">
@@ -254,5 +362,46 @@ function FeatureCard({ icon, title, description }: { icon: React.ReactNode; titl
         <CardDescription className="text-purple-700/80">{description}</CardDescription>
       </CardHeader>
     </Card>
+  );
+}
+
+function FlowStep({
+  number,
+  title,
+  subtitle,
+  icon,
+  automated
+}: {
+  number: number;
+  title: string;
+  subtitle?: string;
+  icon: React.ReactNode;
+  automated?: boolean;
+}) {
+  return (
+    <div className="flex items-start gap-3 group">
+      <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm flex-shrink-0 ${automated
+          ? 'bg-gradient-to-br from-green-500 to-emerald-600 text-white shadow-lg shadow-green-500/30'
+          : 'bg-purple-100 text-purple-700'
+        }`}>
+        {number}
+      </div>
+      <div className="flex-1 pt-1">
+        <div className="flex items-center gap-2">
+          <div className={`${automated ? 'text-green-600' : 'text-purple-600'}`}>
+            {icon}
+          </div>
+          <p className="font-medium text-purple-950">{title}</p>
+          {automated && (
+            <span className="ml-auto px-2 py-0.5 bg-green-100 text-green-700 text-xs font-medium rounded-full">
+              Auto
+            </span>
+          )}
+        </div>
+        {subtitle && (
+          <p className="text-sm text-purple-600 mt-1 ml-6">{subtitle}</p>
+        )}
+      </div>
+    </div>
   );
 }

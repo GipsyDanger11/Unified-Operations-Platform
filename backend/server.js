@@ -13,6 +13,8 @@ import dashboardRoutes from './routes/dashboard.js';
 import staffRoutes from './routes/staff.js';
 import publicRoutes from './routes/public.js';
 import integrationsRoutes from './routes/integrations.js';
+import adminRoutes from './routes/admin.js';
+import searchRoutes from './routes/search.js';
 import { startAutomationEngine } from './services/automationEngine.js';
 
 dotenv.config({ path: '../.env' });
@@ -47,6 +49,8 @@ app.use('/api/dashboard', dashboardRoutes);
 app.use('/api/staff', staffRoutes);
 app.use('/api/public', publicRoutes);
 app.use('/api/integrations', integrationsRoutes);
+app.use('/api/admin', adminRoutes);
+app.use('/api/search', searchRoutes);
 
 // Health check
 app.get('/health', (req, res) => {

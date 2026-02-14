@@ -1,12 +1,12 @@
 import { useState, useEffect, useRef } from "react";
-import { Card, CardContent } from "@/react-app/components/ui/card";
-import { Avatar, AvatarFallback, AvatarImage } from "@/react-app/components/ui/avatar";
+// Card and CardContent removed as they were unused
+import { Avatar, AvatarFallback } from "@/react-app/components/ui/avatar";
 import { Button } from "@/react-app/components/ui/button";
 import { Input } from "@/react-app/components/ui/input";
 import { Badge } from "@/react-app/components/ui/badge";
 import { ScrollArea } from "@/react-app/components/ui/scroll-area";
 import { api } from "@/react-app/lib/api";
-import { Loader2, Send, Phone, Mail, User, Search, MoreVertical, MessageSquare } from "lucide-react";
+import { Loader2, Send, Phone, Mail, Search, MoreVertical, MessageSquare } from "lucide-react";
 
 interface Contact {
   _id: string;
@@ -50,13 +50,14 @@ export default function InboxPage() {
     const fetchConversations = async () => {
       try {
         const data = await api.getConversations();
-        setConversations(data);
+        setConversations(Array.isArray(data) ? data : []);
         if (data.length > 0 && !selectedConversationId) {
           // Select first one by default if none selected
           // setSelectedConversationId(data[0]._id);
         }
       } catch (error) {
         console.error("Failed to fetch conversations", error);
+        setConversations([]);
       } finally {
         setLoading(false);
       }
@@ -124,6 +125,16 @@ export default function InboxPage() {
     }
   };
 
+
+  // Handle URL query for conversation selection (from Dashboard)
+  useEffect(() => {
+    const searchParams = new URLSearchParams(window.location.search);
+    const convId = searchParams.get("conversationId");
+    if (convId) {
+      setSelectedConversationId(convId);
+    }
+  }, []);
+
   if (loading) {
     return (
       <div className="flex justify-center items-center h-[calc(100vh-100px)]">
@@ -133,46 +144,59 @@ export default function InboxPage() {
   }
 
   return (
-    <div className="h-[calc(100vh-100px)] -m-6 flex overflow-hidden">
+    <div className="h-[calc(100vh-4rem)] flex overflow-hidden bg-white">
       {/* Sidebar: Conversation List */}
-      <div className="w-1/3 border-r bg-white/50 backdrop-blur-sm flex flex-col">
-        <div className="p-4 border-b">
+      <div className="w-80 md:w-96 border-r border-gray-100 flex flex-col bg-gray-50/50">
+        <div className="p-4 border-b border-gray-100 bg-white">
+          <h1 className="text-xl font-bold text-gray-900 mb-4">Inbox</h1>
           <div className="relative">
-            <Search className="absolute left-3 top-2.5 h-4 w-4 text-gray-500" />
-            <Input placeholder="Search messages..." className="pl-9 bg-white" />
+            <Search className="absolute left-3 top-2.5 h-4 w-4 text-gray-400" />
+            <Input
+              placeholder="Search messages..."
+              className="pl-9 bg-gray-50 border-gray-200 focus:bg-white transition-all"
+            />
           </div>
         </div>
         <ScrollArea className="flex-1">
-          <div className="flex flex-col">
+          <div className="flex flex-col p-2 space-y-1">
             {conversations.map((conv) => (
               <button
                 key={conv._id}
                 onClick={() => setSelectedConversationId(conv._id)}
-                className={`p-4 flex items-start gap-3 hover:bg-purple-50 transition-colors text-left border-b border-gray-100 ${selectedConversationId === conv._id ? "bg-purple-50 border-purple-200" : ""
+                className={`p-3 rounded-xl flex items-start gap-3 transition-all text-left group ${selectedConversationId === conv._id
+                  ? "bg-purple-600 shadow-md shadow-purple-200"
+                  : "hover:bg-white hover:shadow-sm"
                   }`}
               >
-                <Avatar>
-                  <AvatarFallback className="bg-purple-100 text-purple-700">
+                <Avatar className="border-2 border-white shadow-sm">
+                  <AvatarFallback className={`${selectedConversationId === conv._id
+                    ? "bg-purple-500 text-white border-purple-400"
+                    : "bg-purple-100 text-purple-700"
+                    }`}>
                     {conv.contact.firstName[0]}{conv.contact.lastName[0]}
                   </AvatarFallback>
                 </Avatar>
                 <div className="flex-1 overflow-hidden">
                   <div className="flex justify-between items-start">
-                    <span className="font-medium truncate">
+                    <span className={`font-semibold truncate ${selectedConversationId === conv._id ? "text-white" : "text-gray-900"
+                      }`}>
                       {conv.contact.firstName} {conv.contact.lastName}
                     </span>
                     {conv.lastMessageAt && (
-                      <span className="text-xs text-gray-500 whitespace-nowrap ml-2">
+                      <span className={`text-[10px] whitespace-nowrap ml-2 ${selectedConversationId === conv._id ? "text-purple-200" : "text-gray-400"
+                        }`}>
                         {new Date(conv.lastMessageAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
                       </span>
                     )}
                   </div>
-                  <p className="text-sm text-gray-500 truncate mt-1">
+                  <p className={`text-sm truncate mt-0.5 ${selectedConversationId === conv._id ? "text-purple-100" : "text-gray-500"
+                    }`}>
                     {conv.lastMessage || "No messages yet"}
                   </p>
                 </div>
                 {conv.unreadCount > 0 && (
-                  <Badge className="bg-purple-600 rounded-full w-5 h-5 flex items-center justify-center p-0 text-[10px]">
+                  <Badge className={`rounded-full w-5 h-5 flex items-center justify-center p-0 text-[10px] border-0 ${selectedConversationId === conv._id ? "bg-white text-purple-600" : "bg-purple-600 text-white"
+                    }`}>
                     {conv.unreadCount}
                   </Badge>
                 )}
@@ -183,39 +207,46 @@ export default function InboxPage() {
       </div>
 
       {/* Main: Chat Window */}
-      <div className="flex-1 flex flex-col bg-white/80 backdrop-blur-sm">
+      <div className="flex-1 flex flex-col bg-slate-50 relative">
         {selectedConversationId ? (
           <>
             {/* Chat Header */}
-            <div className="p-4 border-b flex justify-between items-center bg-white/80">
+            <div className="h-16 px-6 border-b border-gray-200 flex justify-between items-center bg-white shadow-sm z-10">
               <div className="flex items-center gap-3">
-                <Avatar>
-                  <AvatarFallback>
+                <Avatar className="w-10 h-10 border border-gray-100">
+                  <AvatarFallback className="bg-gradient-to-br from-purple-500 to-purple-600 text-white">
                     {currentConversation?.contact.firstName[0]}
                   </AvatarFallback>
                 </Avatar>
                 <div>
-                  <h2 className="font-semibold">
+                  <h2 className="font-bold text-gray-900">
                     {currentConversation?.contact.firstName} {currentConversation?.contact.lastName}
                   </h2>
-                  <div className="text-xs text-gray-500 flex items-center gap-2">
-                    <span className="flex items-center gap-1"><Mail className="w-3 h-3" /> {currentConversation?.contact.email}</span>
+                  <div className="text-xs text-gray-500 flex items-center gap-3">
+                    <span className="flex items-center gap-1.5">
+                      <Mail className="w-3 h-3 text-gray-400" /> {currentConversation?.contact.email}
+                    </span>
                     {currentConversation?.contact.phone && (
-                      <span className="flex items-center gap-1"><Phone className="w-3 h-3" /> {currentConversation?.contact.phone}</span>
+                      <span className="flex items-center gap-1.5">
+                        <Phone className="w-3 h-3 text-gray-400" /> {currentConversation?.contact.phone}
+                      </span>
                     )}
                   </div>
                 </div>
               </div>
-              <Button variant="ghost" size="icon">
-                <MoreVertical className="w-5 h-5 text-gray-500" />
+              <Button variant="ghost" size="icon" className="text-gray-400 hover:text-purple-600">
+                <MoreVertical className="w-5 h-5" />
               </Button>
             </div>
 
             {/* Messages Area */}
-            <div className="flex-1 overflow-y-auto p-4 space-y-4" ref={scrollRef}>
+            <div className="flex-1 overflow-y-auto p-6 space-y-6 bg-slate-50" ref={scrollRef}>
               {messagesLoading ? (
-                <div className="flex justify-center pt-10">
-                  <Loader2 className="w-6 h-6 animate-spin text-purple-400" />
+                <div className="flex justify-center pt-20">
+                  <div className="flex items-center gap-2 text-purple-600 font-medium bg-white px-4 py-2 rounded-full shadow-sm">
+                    <Loader2 className="w-5 h-5 animate-spin" />
+                    Loading conversation...
+                  </div>
                 </div>
               ) : (
                 currentConversation?.messages?.map((msg, idx) => (
@@ -223,15 +254,20 @@ export default function InboxPage() {
                     key={idx}
                     className={`flex ${msg.direction === 'outbound' ? 'justify-end' : 'justify-start'}`}
                   >
-                    <div
-                      className={`max-w-[70%] rounded-lg p-3 ${msg.direction === 'outbound'
-                        ? 'bg-purple-600 text-white'
-                        : 'bg-gray-100 text-gray-800'
-                        }`}
-                    >
-                      <p className="text-sm">{msg.content}</p>
-                      <span className={`text-[10px] mt-1 block opacity-70 ${msg.direction === 'outbound' ? 'text-purple-100' : 'text-gray-500'}`}>
-                        {new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} • {msg.channel}
+                    <div className={`max-w-[70%] group relative ${msg.direction === 'outbound' ? 'items-end' : 'items-start'} flex flex-col`}>
+                      <div
+                        className={`rounded-2xl p-4 shadow-sm border ${msg.direction === 'outbound'
+                          ? 'bg-purple-600 text-white border-purple-500 rounded-tr-sm'
+                          : 'bg-white text-gray-800 border-gray-100 rounded-tl-sm'
+                          }`}
+                      >
+                        <p className="text-sm leading-relaxed">{msg.content}</p>
+                      </div>
+                      <span className={`text-[10px] mt-1.5 px-1 font-medium ${msg.direction === 'outbound' ? 'text-gray-400' : 'text-gray-400'}`}>
+                        {new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                        {msg.direction === 'outbound' && (
+                          <span className="ml-1 opacity-70">• {msg.status}</span>
+                        )}
                       </span>
                     </div>
                   </div>
@@ -240,27 +276,37 @@ export default function InboxPage() {
             </div>
 
             {/* Input Area */}
-            <div className="p-4 border-t bg-white">
-              <form onSubmit={handleSendMessage} className="flex gap-2">
-                <Input
-                  value={newMessage}
-                  onChange={(e) => setNewMessage(e.target.value)}
-                  placeholder="Type a message..."
-                  disabled={sending}
-                  className="flex-1"
-                />
-                <Button type="submit" disabled={sending || !newMessage.trim()} className="bg-purple-600 hover:bg-purple-700">
-                  {sending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
-                </Button>
-              </form>
+            <div className="p-4 bg-white border-t border-gray-200">
+              <div className="max-w-4xl mx-auto">
+                <form onSubmit={handleSendMessage} className="flex gap-3 items-end bg-gray-50 p-2 rounded-2xl border border-gray-200 focus-within:border-purple-300 focus-within:ring-4 focus-within:ring-purple-50 transition-all">
+                  <Input
+                    value={newMessage}
+                    onChange={(e) => setNewMessage(e.target.value)}
+                    placeholder="Type your message..."
+                    disabled={sending}
+                    className="flex-1 border-0 bg-transparent focus-visible:ring-0 px-3 py-2 min-h-[44px]"
+                  />
+                  <Button
+                    type="submit"
+                    disabled={sending || !newMessage.trim()}
+                    className="rounded-xl h-10 w-10 p-0 bg-purple-600 hover:bg-purple-700 shadow-md shadow-purple-200"
+                  >
+                    {sending ? <Loader2 className="w-4 h-4 animate-spin text-white" /> : <Send className="w-4 h-4 text-white" />}
+                  </Button>
+                </form>
+                <div className="text-center mt-2">
+                  <span className="text-[10px] text-gray-400">Press Enter to send • Shift + Enter for new line</span>
+                </div>
+              </div>
             </div>
           </>
         ) : (
-          <div className="flex-1 flex flex-col items-center justify-center text-gray-400">
-            <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mb-4">
-              <MessageSquare className="w-8 h-8 text-gray-300" />
+          <div className="flex-1 flex flex-col items-center justify-center text-gray-400 bg-slate-50/50">
+            <div className="w-24 h-24 bg-white rounded-full flex items-center justify-center mb-6 shadow-xl shadow-purple-500/5 border border-purple-50 animate-pulse">
+              <MessageSquare className="w-12 h-12 text-purple-200" />
             </div>
-            <p>Select a conversation to start messaging</p>
+            <h3 className="text-lg font-semibold text-gray-900 mb-2">No conversation selected</h3>
+            <p className="text-gray-500 max-w-xs text-center">Choose a contact from the sidebar to view history or start a new message.</p>
           </div>
         )}
       </div>

@@ -1,9 +1,9 @@
 import { useState, useEffect } from "react";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/react-app/components/ui/card";
+import { Card, CardContent } from "@/react-app/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/react-app/components/ui/table";
 import { Badge } from "@/react-app/components/ui/badge";
 import { Button } from "@/react-app/components/ui/button";
-import { Loader2, Calendar, Clock, User, CheckCircle, XCircle } from "lucide-react";
+import { Loader2, Calendar, Clock, CheckCircle, XCircle } from "lucide-react";
 import { api } from "@/react-app/lib/api";
 
 interface Booking {
@@ -32,9 +32,10 @@ export default function BookingsPage() {
       // API supports status filtering
       const params = filter !== "all" ? { status: filter } : {};
       const data = await api.getBookings(params);
-      setBookings(data);
+      setBookings(Array.isArray(data) ? data : []);
     } catch (error) {
       console.error("Failed to fetch bookings:", error);
+      setBookings([]);
     } finally {
       setLoading(false);
     }

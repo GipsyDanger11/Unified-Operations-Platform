@@ -67,6 +67,10 @@ class ApiClient {
         this.clearAuthToken();
     }
 
+    async getMe() {
+        return this.request('/auth/me');
+    }
+
     // Onboarding
     async getOnboardingStatus() {
         return this.request('/onboarding/status');
@@ -199,6 +203,23 @@ class ApiClient {
         return this.request('/inventory/alerts');
     }
 
+    async updateInventoryItem(id: string, data: any) {
+        return this.request(`/inventory/${id}`, {
+            method: 'PUT',
+            body: JSON.stringify(data),
+        });
+    }
+
+    async deleteInventoryItem(id: string) {
+        return this.request(`/inventory/${id}`, {
+            method: 'DELETE',
+        });
+    }
+
+    async getIntegrations() {
+        return this.request('/integrations');
+    }
+
     // Staff
     async getStaff() {
         return this.request('/staff');
@@ -216,6 +237,13 @@ class ApiClient {
             method: 'PATCH',
             body: JSON.stringify({ permissions }),
         });
+    }
+
+    // Search
+    async search(query: string, type?: string) {
+        const params = new URLSearchParams({ q: query });
+        if (type) params.append('type', type);
+        return this.request(`/search?${params.toString()}`);
     }
 }
 
