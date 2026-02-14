@@ -1,0 +1,10 @@
+[2026-02-14T17:15:22.304Z] GET /test.html - IP: ::1 - UA: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36
+[2026-02-14T17:15:22.317Z] GET /test.html - IP: ::1 - UA: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36
+[2026-02-14T17:15:22.354Z] GET /favicon.ico - IP: ::1 - UA: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36
+[2026-02-14T17:15:22.359Z] GET /favicon.ico - IP: ::1 - UA: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36
+[2026-02-14T17:15:35.083Z] OPTIONS /api/chatbot - IP: ::1 - UA: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36
+[2026-02-14T17:15:35.095Z] POST /api/chatbot - IP: ::1 - UA: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36
+[2026-02-14T17:17:45.786Z] OPTIONS /api/chatbot - IP: ::1 - UA: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/145.0.0.0 Safari/537.36
+[2026-02-14T17:17:45.789Z] POST /api/chatbot - IP: ::1 - UA: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/145.0.0.0 Safari/537.36
+[2026-02-14T17:18:28.496Z] OPTIONS /api/chatbot - IP: ::1 - UA: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/145.0.0.0 Safari/537.36
+[2026-02-14T17:18:28.501Z] POST /api/chatbot - IP: ::1 - UA: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/145.0.0.0 Safari/537.36

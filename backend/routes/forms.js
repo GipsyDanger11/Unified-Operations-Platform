@@ -159,8 +159,9 @@ router.post('/submit/:formId', async (req, res) => {
 
                 if (!contact) {
                     // Create new contact
-                    const name = nameField ? responses[nameField.label] : 'Unknown';
-                    const [firstName, ...lastNameParts] = name.split(' ');
+                    const name = (nameField && responses[nameField.label]) ? responses[nameField.label] : 'Unknown';
+                    const nameStr = String(name || 'Unknown');
+                    const [firstName, ...lastNameParts] = nameStr.split(' ');
                     const lastName = lastNameParts.join(' ');
 
                     contact = await Contact.create({

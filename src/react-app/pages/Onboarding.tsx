@@ -12,6 +12,7 @@ import ActivationStep from "@/react-app/components/onboarding/ActivationStep";
 import FormsStep from "@/react-app/components/onboarding/FormsStep";
 import { api } from "@/react-app/lib/api";
 import { useNavigate } from "react-router";
+import { toast } from "react-toastify";
 
 // Define all 8 steps
 const steps = [
@@ -63,8 +64,10 @@ export default function OnboardingPage() {
         await api.completeOnboardingStep(currentStep, stepData);
         setCurrentStep(currentStep + 1);
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error("Failed to save step:", err);
+      const errorMsg = err?.message || err?.error || 'Something went wrong. Please try again.';
+      toast.error(typeof errorMsg === 'string' ? errorMsg : 'Failed to complete step. Please try again.');
     } finally {
       setIsSubmitting(false);
     }

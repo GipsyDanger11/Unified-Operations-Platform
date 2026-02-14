@@ -26,11 +26,18 @@ router.post('/public/:workspaceId', async (req, res) => {
             notes,
         } = req.body;
 
-        // Create or find contact
-        let contact = await Contact.findOne({
-            workspace: workspaceId,
-            $or: [{ email: email?.toLowerCase() }, { phone }],
-        });
+        // Create or find contact — only search by fields that have values
+        const orConditions = [];
+        if (email) orConditions.push({ email: email.toLowerCase() });
+        if (phone) orConditions.push({ phone });
+
+        let contact = null;
+        if (orConditions.length > 0) {
+            contact = await Contact.findOne({
+                workspace: workspaceId,
+                $or: orConditions,
+            });
+        }
 
         if (!contact) {
             console.log(`🆕 Creating new contact for ${email}`);

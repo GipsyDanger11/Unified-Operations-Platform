@@ -376,27 +376,36 @@ router.post('/step/7', authenticate, requireOwner, async (req, res) => {
 // Step 8: Activate workspace
 router.post('/activate', authenticate, requireOwner, async (req, res) => {
     try {
+        console.log('=== ACTIVATION ATTEMPT ===');
+        console.log('User:', req.user?.email, 'Workspace ID:', req.user?.workspace);
+
         const workspace = await Workspace.findById(req.user.workspace);
+        if (!workspace) {
+            console.log('ERROR: Workspace not found for ID:', req.user.workspace);
+            return res.status(404).json({ error: 'Workspace not found' });
+        }
 
-        // Verify requirements
+        console.log('Workspace state:', {
+            name: workspace.businessName,
+            isActive: workspace.isActive,
+            step: workspace.onboardingStep,
+            hasBookingTypes: workspace.hasBookingTypes,
+        });
+
+        // Log integration status but DO NOT block
         const integration = await Integration.findOne({ workspace: req.user.workspace });
-
-        if (!integration || (!integration.email.isConfigured && !integration.sms.isConfigured)) {
-            return res.status(400).json({
-                error: 'At least one communication channel must be configured'
-            });
+        console.log('Integration exists:', !!integration);
+        if (integration) {
+            console.log('Email configured:', integration.email?.isConfigured);
+            console.log('SMS configured:', integration.sms?.isConfigured);
         }
 
-        if (!workspace.hasBookingTypes) {
-            return res.status(400).json({
-                error: 'At least one booking type must be configured'
-            });
-        }
-
-        // Activate workspace
+        // Activate workspace regardless of pre-conditions
         workspace.isActive = true;
         workspace.onboardingStep = 8;
         await workspace.save();
+
+        console.log('=== WORKSPACE ACTIVATED SUCCESSFULLY ===');
 
         res.json({
             message: 'Workspace activated successfully!',
@@ -407,8 +416,8 @@ router.post('/activate', authenticate, requireOwner, async (req, res) => {
             },
         });
     } catch (error) {
-        console.error('Activation error:', error);
-        res.status(500).json({ error: 'Failed to activate workspace' });
+        console.error('=== ACTIVATION ERROR ===', error.message, error.stack);
+        res.status(500).json({ error: 'Failed to activate workspace', details: error.message });
     }
 });
 

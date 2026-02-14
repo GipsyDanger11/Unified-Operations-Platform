@@ -7,6 +7,10 @@ export default defineConfig({
 	server: {
 		allowedHosts: true,
 		port: 5173,
+		hmr: {
+			protocol: 'ws',
+			host: 'localhost',
+		},
 	},
 	build: {
 		chunkSizeWarningLimit: 5000,

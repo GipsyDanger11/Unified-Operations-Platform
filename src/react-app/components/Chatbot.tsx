@@ -59,6 +59,19 @@ export default function Chatbot() {
         setLoading(true);
 
         try {
+            // CHECK AUTH TOKEN FIRST
+            if (!api.getAuthToken()) {
+                setMessages((prev) => [
+                    ...prev,
+                    {
+                        role: "assistant",
+                        content: "🔒 You need to be logged in to use the platform assistant. Please login to your account to get help with your specific dashboard."
+                    },
+                ]);
+                setLoading(false);
+                return;
+            }
+
             // Send only the conversation history (excluding the initial greeting)
             const apiMessages = updatedMessages
                 .filter((_, i) => i > 0 || updatedMessages[0].role === "user")

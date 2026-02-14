@@ -1,7 +1,6 @@
 import express from 'express';
 import mongoose from 'mongoose';
 import cors from 'cors';
-import dotenv from 'dotenv';
 import authRoutes from './routes/auth.js';
 import onboardingRoutes from './routes/onboarding.js';
 import contactRoutes from './routes/contacts.js';
@@ -19,8 +18,6 @@ import servicesRoutes from './routes/services.js';
 import chatbotRoutes from './routes/chatbot.js';
 import { startAutomationEngine } from './services/automationEngine.js';
 
-dotenv.config({ path: '../.env' });
-
 const app = express();
 const PORT = process.env.PORT || 5000;
 
@@ -28,6 +25,7 @@ const PORT = process.env.PORT || 5000;
 app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+app.use(express.static('public'));
 
 // MongoDB Connection
 mongoose

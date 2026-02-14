@@ -10,7 +10,7 @@ const contactSchema = new mongoose.Schema({
     phone: String,
 
     // Source tracking
-    source: { type: String, enum: ['contact_form', 'booking', 'manual'], default: 'contact_form' },
+    source: { type: String, enum: ['contact_form', 'booking', 'manual', 'form_submission'], default: 'contact_form' },
 
     // Status
     status: { type: String, enum: ['new', 'contacted', 'active', 'inactive'], default: 'new' },
