@@ -46,7 +46,11 @@ export default function HomePage() {
       }
 
       if (response.token) {
-        navigate("/dashboard");
+        if (!isLogin) {
+          navigate("/onboarding");
+        } else {
+          navigate("/dashboard");
+        }
       }
     } catch (err: any) {
       setError(err.message || "Authentication failed");
@@ -381,8 +385,8 @@ function FlowStep({
   return (
     <div className="flex items-start gap-3 group">
       <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm flex-shrink-0 ${automated
-          ? 'bg-gradient-to-br from-green-500 to-emerald-600 text-white shadow-lg shadow-green-500/30'
-          : 'bg-purple-100 text-purple-700'
+        ? 'bg-gradient-to-br from-green-500 to-emerald-600 text-white shadow-lg shadow-green-500/30'
+        : 'bg-purple-100 text-purple-700'
         }`}>
         {number}
       </div>

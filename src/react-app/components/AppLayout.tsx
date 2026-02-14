@@ -1,5 +1,5 @@
 import { ReactNode, useState, useEffect } from "react";
-import { Link, useLocation } from "react-router";
+import { Link, useLocation, useNavigate } from "react-router";
 import {
   LayoutDashboard,
   MessageSquare,
@@ -13,7 +13,8 @@ import {
   ChevronDown,
   Search,
   Menu,
-  X
+  X,
+  LogOut
 } from "lucide-react";
 import { Button } from "@/react-app/components/ui/button";
 import { Badge } from "@/react-app/components/ui/badge";
@@ -44,19 +45,21 @@ const navigation = [
   { name: "Settings", href: "/settings", icon: Settings },
 ];
 
-const alerts = [
-  { id: 1, type: "urgent", message: "3 unconfirmed bookings today" },
-  { id: 2, type: "warning", message: "Low stock: Floor cleaner (2 units)" },
-  { id: 3, type: "info", message: "5 forms pending completion" },
-];
-
 export default function AppLayout({ children }: AppLayoutProps) {
   const location = useLocation();
+  const navigate = useNavigate();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [user, setUser] = useState<any>(null);
+  const [alerts, setAlerts] = useState<any[]>([]);
+
+  // Search state
+  const [searchQuery, setSearchQuery] = useState("");
+  const [searchResults, setSearchResults] = useState<any[]>([]);
+  const [showSearchResults, setShowSearchResults] = useState(false);
 
   useEffect(() => {
     fetchUser();
+    fetchAlerts();
   }, []);
 
   const fetchUser = async () => {
@@ -68,6 +71,46 @@ export default function AppLayout({ children }: AppLayoutProps) {
     } catch (error) {
       console.error("Failed to fetch user profile", error);
     }
+  };
+
+  const fetchAlerts = async () => {
+    try {
+      const data = await api.getDashboardAlerts();
+      if (data?.alerts) {
+        setAlerts(data.alerts);
+      }
+    } catch (error) {
+      console.error("Failed to fetch alerts", error);
+    }
+  };
+
+  const handleLogout = () => {
+    api.logout();
+    navigate("/");
+  };
+
+  const handleSearch = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const query = e.target.value;
+    setSearchQuery(query);
+
+    if (query.length > 2) {
+      try {
+        const data = await api.search(query);
+        setSearchResults(data.results || []);
+        setShowSearchResults(true);
+      } catch (error) {
+        console.error("Search failed", error);
+      }
+    } else {
+      setSearchResults([]);
+      setShowSearchResults(false);
+    }
+  };
+
+  const handleSearchResultClick = (link: string) => {
+    setShowSearchResults(false);
+    setSearchQuery("");
+    navigate(link);
   };
 
   return (
@@ -124,7 +167,7 @@ export default function AppLayout({ children }: AppLayoutProps) {
                       <Icon className={`w-5 h-5 ${isActive ? "" : "group-hover:scale-110 transition-transform"}`} />
                       <span className="font-medium">{item.name}</span>
                     </div>
-                    {item.badge && (
+                    {item.badge ? (
                       <Badge
                         variant={isActive ? "secondary" : "default"}
                         className={`
@@ -134,7 +177,7 @@ export default function AppLayout({ children }: AppLayoutProps) {
                       >
                         {item.badge}
                       </Badge>
-                    )}
+                    ) : null}
                   </Link>
                 );
               })}
@@ -186,25 +229,43 @@ export default function AppLayout({ children }: AppLayoutProps) {
                         <div className="text-xs text-muted-foreground">Active</div>
                       </div>
                     </DropdownMenuItem>
-                    <DropdownMenuItem className="flex items-center gap-3">
-                      <div className="w-8 h-8 rounded bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center text-white text-xs font-bold">
-                        BC
-                      </div>
-                      <div className="flex-1">
-                        <div className="font-medium">Beta Corp</div>
-                        <div className="text-xs text-muted-foreground">Switch</div>
-                      </div>
-                    </DropdownMenuItem>
                     <DropdownMenuSeparator />
                     <DropdownMenuItem>Create new workspace</DropdownMenuItem>
                   </DropdownMenuContent>
                 </DropdownMenu>
 
                 {/* Search */}
-                <div className="hidden md:flex items-center gap-2 px-4 py-2 rounded-lg bg-purple-50 border border-purple-200 text-purple-600 min-w-[300px]">
-                  <Search className="w-4 h-4" />
-                  <span className="text-sm">Search...</span>
-                  <kbd className="ml-auto px-2 py-0.5 text-xs bg-white rounded border border-purple-200">⌘K</kbd>
+                <div className="hidden md:block relative z-50">
+                  <div className="flex items-center gap-2 px-4 py-2 rounded-lg bg-purple-50 border border-purple-200 text-purple-600 w-[300px]">
+                    <Search className="w-4 h-4" />
+                    <input
+                      type="text"
+                      placeholder="Search..."
+                      className="bg-transparent border-none outline-none text-sm w-full placeholder:text-purple-400 text-purple-900"
+                      value={searchQuery}
+                      onChange={handleSearch}
+                      onFocus={() => searchQuery.length > 2 && setShowSearchResults(true)}
+                    />
+                    <kbd className="px-2 py-0.5 text-xs bg-white rounded border border-purple-200">⌘K</kbd>
+                  </div>
+
+                  {showSearchResults && searchResults.length > 0 && (
+                    <div className="absolute top-full left-0 right-0 mt-2 bg-white rounded-lg border border-purple-200 shadow-xl overflow-hidden max-h-[300px] overflow-y-auto">
+                      {searchResults.map((result, idx) => (
+                        <div
+                          key={`${result.type}-${result.id}-${idx}`}
+                          className="p-3 hover:bg-purple-50 cursor-pointer border-b border-purple-50 last:border-0"
+                          onClick={() => handleSearchResultClick(result.link)}
+                        >
+                          <div className="flex items-center justify-between">
+                            <div className="font-medium text-purple-900 text-sm">{result.title}</div>
+                            <Badge variant="outline" className="text-[10px] uppercase">{result.type}</Badge>
+                          </div>
+                          <div className="text-xs text-muted-foreground mt-0.5">{result.subtitle}</div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
               </div>
 
@@ -223,26 +284,26 @@ export default function AppLayout({ children }: AppLayoutProps) {
                     <DropdownMenuLabel>System Alerts ({alerts.length})</DropdownMenuLabel>
                     <DropdownMenuSeparator />
                     <div className="max-h-64 overflow-y-auto">
-                      {alerts.map((alert) => (
-                        <DropdownMenuItem key={alert.id} className="flex flex-col items-start gap-1 p-3">
-                          <div className="flex items-center gap-2 w-full">
-                            <div
-                              className={`w-2 h-2 rounded-full ${alert.type === "urgent"
+                      {alerts.length === 0 ? (
+                        <div className="p-4 text-center text-sm text-muted-foreground">No new alerts</div>
+                      ) : (
+                        alerts.map((alert, i) => (
+                          <DropdownMenuItem key={i} className="flex flex-col items-start gap-1 p-3 cursor-pointer" onClick={() => navigate(alert.link)}>
+                            <div className="flex items-center gap-2 w-full">
+                              <div
+                                className={`w-2 h-2 rounded-full ${alert.type === "urgent" || alert.type === "error"
                                   ? "bg-red-500"
                                   : alert.type === "warning"
                                     ? "bg-yellow-500"
                                     : "bg-blue-500"
-                                }`}
-                            />
-                            <span className="text-sm flex-1">{alert.message}</span>
-                          </div>
-                        </DropdownMenuItem>
-                      ))}
+                                  }`}
+                              />
+                              <span className="text-sm flex-1">{alert.message}</span>
+                            </div>
+                          </DropdownMenuItem>
+                        ))
+                      )}
                     </div>
-                    <DropdownMenuSeparator />
-                    <DropdownMenuItem className="justify-center text-purple-600 font-medium">
-                      View all alerts
-                    </DropdownMenuItem>
                   </DropdownMenuContent>
                 </DropdownMenu>
 
@@ -273,7 +334,10 @@ export default function AppLayout({ children }: AppLayoutProps) {
                     <DropdownMenuItem>Billing</DropdownMenuItem>
                     <DropdownMenuItem>Help & support</DropdownMenuItem>
                     <DropdownMenuSeparator />
-                    <DropdownMenuItem className="text-red-600">Sign out</DropdownMenuItem>
+                    <DropdownMenuItem className="text-red-600 cursor-pointer" onClick={handleLogout}>
+                      <LogOut className="w-4 h-4 mr-2" />
+                      Sign out
+                    </DropdownMenuItem>
                   </DropdownMenuContent>
                 </DropdownMenu>
               </div>

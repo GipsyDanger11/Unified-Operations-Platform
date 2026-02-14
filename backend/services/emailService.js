@@ -1,4 +1,3 @@
-import sgMail from '@sendgrid/mail';
 import Integration from '../models/Integration.js';
 
 export const sendEmail = async (workspaceId, to, subject, htmlContent, textContent) => {
@@ -11,23 +10,47 @@ export const sendEmail = async (workspaceId, to, subject, htmlContent, textConte
             return { success: false, error: 'Email not configured' };
         }
 
-        // Configure SendGrid
-        sgMail.setApiKey(integration.email.apiKey);
+        // Check provider (support legacy SendGrid if needed, but prioritize EmailJS structure)
+        if (integration.email.provider === 'sendgrid') {
+            // ... legacy SendGrid code if we wanted to keep it, but user asked to MIGRATE.
+            // So we assume EmailJS. 
+            // If they still have sendgrid data but provider is 'emailjs' (default now), we use EmailJS.
+        }
 
-        const msg = {
-            to,
-            from: {
-                email: integration.email.fromEmail,
-                name: integration.email.fromName || 'Unified Operations',
-            },
-            subject,
-            text: textContent || htmlContent.replace(/<[^>]*>/g, ''), // Strip HTML for text version
-            html: htmlContent,
+        const { serviceId, templateId, publicKey, privateKey, fromName } = integration.email;
+
+        if (!serviceId || !templateId || !publicKey) {
+            return { success: false, error: 'Missing EmailJS credentials' };
+        }
+
+        const templateParams = {
+            to_email: to,
+            from_name: fromName || "Unified Ops",
+            subject: subject,
+            message: textContent || htmlContent.replace(/<[^>]*>/g, ''), // Plain text for simplicity/safety
+            html_message: htmlContent, // In case template uses this
         };
 
-        await sgMail.send(msg);
+        const response = await fetch('https://api.emailjs.com/api/v1.0/email/send', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                service_id: serviceId,
+                template_id: templateId,
+                user_id: publicKey,
+                accessToken: privateKey, // Secure sending
+                template_params: templateParams,
+            }),
+        });
 
-        console.log(`✅ Email sent to ${to}`);
+        if (!response.ok) {
+            const errorText = await response.text();
+            throw new Error(`EmailJS Error: ${response.status} ${errorText}`);
+        }
+
+        console.log(`✅ Email sent to ${to} via EmailJS`);
         return { success: true };
 
     } catch (error) {
@@ -36,22 +59,36 @@ export const sendEmail = async (workspaceId, to, subject, htmlContent, textConte
     }
 };
 
-export const testEmailConnection = async (apiKey, fromEmail, fromName, testTo) => {
+export const testEmailConnection = async (config, testTo) => {
     try {
-        sgMail.setApiKey(apiKey);
+        const { serviceId, templateId, publicKey, privateKey, fromName } = config;
 
-        const msg = {
-            to: testTo,
-            from: {
-                email: fromEmail,
-                name: fromName || 'Unified Operations',
-            },
+        const templateParams = {
+            to_email: testTo,
+            from_name: fromName || "Unified Ops",
             subject: 'Test Email - Unified Operations Platform',
-            text: 'This is a test email to verify your email configuration.',
-            html: '<p>This is a test email to verify your email configuration.</p>',
+            message: 'This is a test email to verify your EmailJS configuration.',
         };
 
-        await sgMail.send(msg);
+        const response = await fetch('https://api.emailjs.com/api/v1.0/email/send', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                service_id: serviceId,
+                template_id: templateId,
+                user_id: publicKey,
+                accessToken: privateKey,
+                template_params: templateParams,
+            }),
+        });
+
+        if (!response.ok) {
+            const errorText = await response.text();
+            throw new Error(`EmailJS Error: ${errorText}`);
+        }
+
         return { success: true, message: 'Test email sent successfully' };
 
     } catch (error) {

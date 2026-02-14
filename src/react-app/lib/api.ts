@@ -77,6 +77,12 @@ class ApiClient {
     }
 
     async completeOnboardingStep(step: number, data: any) {
+        if (step >= 5 && step <= 7) {
+            return this.request(`/onboarding/step/${step}`, {
+                method: 'POST',
+                body: JSON.stringify(data),
+            });
+        }
         return this.request(`/onboarding/step${step}`, {
             method: 'POST',
             body: JSON.stringify(data),

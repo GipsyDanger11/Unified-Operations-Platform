@@ -6,6 +6,10 @@ import WorkspaceStep from "@/react-app/components/onboarding/WorkspaceStep";
 import CommunicationStep from "@/react-app/components/onboarding/CommunicationStep";
 import ContactFormStep from "@/react-app/components/onboarding/ContactFormStep";
 import BookingStep from "@/react-app/components/onboarding/BookingStep";
+import InventoryStep from "@/react-app/components/onboarding/InventoryStep";
+import StaffStep from "@/react-app/components/onboarding/StaffStep";
+import ActivationStep from "@/react-app/components/onboarding/ActivationStep";
+import FormsStep from "@/react-app/components/onboarding/FormsStep";
 import { api } from "@/react-app/lib/api";
 import { useNavigate } from "react-router";
 
@@ -15,10 +19,10 @@ const steps = [
   { id: 2, name: "Communication", component: CommunicationStep },
   { id: 3, name: "Contact Form", component: ContactFormStep },
   { id: 4, name: "Booking Setup", component: BookingStep },
-  { id: 5, name: "Forms", component: BookingStep }, // Reusing component for demo speed, ideally specific FormStep
-  { id: 6, name: "Inventory", component: BookingStep }, // Reusing component for demo speed
-  { id: 7, name: "Staff", component: BookingStep }, // Reusing component for demo speed
-  { id: 8, name: "Activation", component: WorkspaceStep }, // Reusing component for demo speed
+  { id: 5, name: "Forms", component: FormsStep }, // Reusing component for demo speed, ideally specific FormStep
+  { id: 6, name: "Inventory", component: InventoryStep },
+  { id: 7, name: "Staff", component: StaffStep },
+  { id: 8, name: "Activation", component: ActivationStep },
 ];
 
 export default function OnboardingPage() {
@@ -50,15 +54,14 @@ export default function OnboardingPage() {
 
     setIsSubmitting(true);
     try {
-      // Save step to backend
-      await api.completeOnboardingStep(currentStep, stepData);
-
-      if (currentStep < steps.length) {
-        setCurrentStep(currentStep + 1);
-      } else {
-        // Final step - Activate
+      if (currentStep === steps.length) {
+        // Final step - Activate (Don't save step 8, just activate)
         await api.activateWorkspace();
         navigate("/dashboard");
+      } else {
+        // Save step to backend
+        await api.completeOnboardingStep(currentStep, stepData);
+        setCurrentStep(currentStep + 1);
       }
     } catch (err) {
       console.error("Failed to save step:", err);
@@ -156,11 +159,13 @@ export default function OnboardingPage() {
               </div>
             ) : (
               <CurrentStepComponent
+                key={currentStep}
                 data={formData}
                 onNext={handleNext}
                 onBack={handleBack}
                 isFirstStep={currentStep === 1}
                 isLastStep={currentStep === steps.length}
+                title={steps.find(s => s.id === currentStep)?.name}
               />
             )}
           </div>

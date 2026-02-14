@@ -1,5 +1,6 @@
+
 import { useState } from "react";
-import { Mail, MessageSquare, CheckCircle2, XCircle, Loader2, Send } from "lucide-react";
+import { Mail, Loader2, CheckCircle2, XCircle, Send, ExternalLink } from "lucide-react";
 import { Button } from "@/react-app/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/react-app/components/ui/card";
 import { Input } from "@/react-app/components/ui/input";
@@ -18,13 +19,12 @@ type ConnectionStatus = "idle" | "connecting" | "connected" | "failed";
 
 export default function CommunicationStep({ data, onNext, onBack }: CommunicationStepProps) {
   const [emailStatus, setEmailStatus] = useState<ConnectionStatus>(data.emailStatus || "idle");
-  const [smsStatus, setSmsStatus] = useState<ConnectionStatus>(data.smsStatus || "idle");
-  const [emailProvider, setEmailProvider] = useState(data.emailProvider || "");
-  const [emailApiKey, setEmailApiKey] = useState(data.emailApiKey || "");
-  const [smsProvider, setSmsProvider] = useState(data.smsProvider || "");
-  const [smsApiKey, setSmsApiKey] = useState(data.smsApiKey || "");
+  const [emailJsServiceId, setEmailJsServiceId] = useState(data.email?.serviceId || data.emailServiceId || "");
+  const [emailJsTemplateId, setEmailJsTemplateId] = useState(data.email?.templateId || data.emailTemplateId || "");
+  const [emailJsPublicKey, setEmailJsPublicKey] = useState(data.email?.publicKey || data.emailPublicKey || "");
+  const [emailJsPrivateKey, setEmailJsPrivateKey] = useState(data.email?.privateKey || data.emailPrivateKey || "");
+
   const [testingEmail, setTestingEmail] = useState(false);
-  const [testingSms, setTestingSms] = useState(false);
 
   const handleConnectEmail = async () => {
     setEmailStatus("connecting");
@@ -33,54 +33,39 @@ export default function CommunicationStep({ data, onNext, onBack }: Communicatio
     setEmailStatus("connected");
   };
 
-  const handleConnectSms = async () => {
-    setSmsStatus("connecting");
-    // Simulate API call
-    await new Promise((resolve) => setTimeout(resolve, 1500));
-    setSmsStatus("connected");
-  };
-
   const handleTestEmail = async () => {
     setTestingEmail(true);
     await new Promise((resolve) => setTimeout(resolve, 1000));
     setTestingEmail(false);
   };
 
-  const handleTestSms = async () => {
-    setTestingSms(true);
-    await new Promise((resolve) => setTimeout(resolve, 1000));
-    setTestingSms(false);
-  };
-
   const handleRetryEmail = () => {
     setEmailStatus("idle");
-  };
-
-  const handleRetrySms = () => {
-    setSmsStatus("idle");
   };
 
   const handleNext = () => {
     onNext({
       emailStatus,
-      smsStatus,
-      emailProvider,
-      emailApiKey,
-      smsProvider,
-      smsApiKey,
+      // Nested Payload for Backend
+      email: {
+        serviceId: emailJsServiceId,
+        templateId: emailJsTemplateId,
+        publicKey: emailJsPublicKey,
+        privateKey: emailJsPrivateKey,
+      },
     });
   };
 
-  const canProceed = emailStatus === "connected" && smsStatus === "connected";
+  const canProceed = emailStatus === "connected";
 
   return (
     <div className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-500">
       <div>
         <h2 className="text-3xl font-bold text-purple-950">Communication Setup</h2>
-        <p className="text-purple-700 mt-2">Connect your email and SMS providers to communicate with customers</p>
+        <p className="text-purple-700 mt-2">Connect your email provider to communicate with customers</p>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 gap-6">
         {/* Email Provider */}
         <Card className="bg-white/80 backdrop-blur-sm border-purple-200">
           <CardHeader>
@@ -90,8 +75,8 @@ export default function CommunicationStep({ data, onNext, onBack }: Communicatio
                   <Mail className="w-5 h-5" />
                 </div>
                 <div>
-                  <CardTitle className="text-purple-950">Email Provider</CardTitle>
-                  <CardDescription>Connect your email service</CardDescription>
+                  <CardTitle className="text-purple-950">Email Service (EmailJS)</CardTitle>
+                  <CardDescription>Connect via EmailJS credentials</CardDescription>
                 </div>
               </div>
               <StatusBadge status={emailStatus} />
@@ -101,32 +86,64 @@ export default function CommunicationStep({ data, onNext, onBack }: Communicatio
             {emailStatus === "idle" && (
               <>
                 <div className="space-y-2">
-                  <Label htmlFor="emailProvider" className="text-purple-900">Provider</Label>
+                  <Label htmlFor="emailJsServiceId" className="text-purple-900">Service ID</Label>
                   <Input
-                    id="emailProvider"
-                    placeholder="e.g., SendGrid, Mailgun, AWS SES"
-                    value={emailProvider}
-                    onChange={(e) => setEmailProvider(e.target.value)}
+                    id="emailJsServiceId"
+                    placeholder="e.g., service_xxxxxxxxx"
+                    value={emailJsServiceId}
+                    onChange={(e) => setEmailJsServiceId(e.target.value)}
                     className="bg-white border-purple-200"
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="emailApiKey" className="text-purple-900">API Key</Label>
+                  <Label htmlFor="emailJsTemplateId" className="text-purple-900">Template ID</Label>
                   <Input
-                    id="emailApiKey"
+                    id="emailJsTemplateId"
+                    placeholder="e.g., template_xxxxxxxxx"
+                    value={emailJsTemplateId}
+                    onChange={(e) => setEmailJsTemplateId(e.target.value)}
+                    className="bg-white border-purple-200"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <Label htmlFor="emailJsPublicKey" className="text-purple-900">Public Key</Label>
+                    <a
+                      href="https://www.emailjs.com/docs/sdk/init/"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-xs text-blue-600 hover:underline flex items-center gap-1"
+                    >
+                      Get Keys <ExternalLink className="w-3 h-3" />
+                    </a>
+                  </div>
+                  <Input
+                    id="emailJsPublicKey"
                     type="password"
-                    placeholder="Enter your API key"
-                    value={emailApiKey}
-                    onChange={(e) => setEmailApiKey(e.target.value)}
+                    placeholder="Enter your Public Key"
+                    value={emailJsPublicKey}
+                    onChange={(e) => setEmailJsPublicKey(e.target.value)}
+                    className="bg-white border-purple-200"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="emailJsPrivateKey" className="text-purple-900">Private Key</Label>
+                  <p className="text-[10px] text-muted-foreground">Required for secure server-side sending.</p>
+                  <Input
+                    id="emailJsPrivateKey"
+                    type="password"
+                    placeholder="Enter your Private Key"
+                    value={emailJsPrivateKey}
+                    onChange={(e) => setEmailJsPrivateKey(e.target.value)}
                     className="bg-white border-purple-200"
                   />
                 </div>
                 <Button
                   onClick={handleConnectEmail}
-                  disabled={!emailProvider || !emailApiKey}
+                  disabled={!emailJsServiceId || !emailJsTemplateId || !emailJsPublicKey || !emailJsPrivateKey}
                   className="w-full bg-gradient-to-r from-blue-500 to-blue-600"
                 >
-                  Connect Email
+                  Connect EmailJS
                 </Button>
               </>
             )}
@@ -134,7 +151,7 @@ export default function CommunicationStep({ data, onNext, onBack }: Communicatio
             {emailStatus === "connecting" && (
               <div className="py-8 flex flex-col items-center justify-center gap-3">
                 <Loader2 className="w-8 h-8 text-purple-500 animate-spin" />
-                <p className="text-sm text-purple-700">Connecting to {emailProvider}...</p>
+                <p className="text-sm text-purple-700">Connecting to EmailJS...</p>
               </div>
             )}
 
@@ -145,7 +162,7 @@ export default function CommunicationStep({ data, onNext, onBack }: Communicatio
                     <CheckCircle2 className="w-4 h-4" />
                     <span className="font-medium">Successfully connected</span>
                   </div>
-                  <p className="text-sm text-green-700">Connected to {emailProvider}</p>
+                  <p className="text-sm text-green-700">Connected to EmailJS</p>
                 </div>
                 <Button
                   onClick={handleTestEmail}
@@ -178,110 +195,6 @@ export default function CommunicationStep({ data, onNext, onBack }: Communicatio
                   <p className="text-sm text-red-700">Invalid credentials or service unavailable</p>
                 </div>
                 <Button onClick={handleRetryEmail} variant="outline" className="w-full">
-                  Retry Connection
-                </Button>
-              </div>
-            )}
-          </CardContent>
-        </Card>
-
-        {/* SMS Provider */}
-        <Card className="bg-white/80 backdrop-blur-sm border-purple-200">
-          <CardHeader>
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-green-500 to-green-600 flex items-center justify-center text-white shadow-lg shadow-green-500/30">
-                  <MessageSquare className="w-5 h-5" />
-                </div>
-                <div>
-                  <CardTitle className="text-purple-950">SMS Provider</CardTitle>
-                  <CardDescription>Connect your SMS service</CardDescription>
-                </div>
-              </div>
-              <StatusBadge status={smsStatus} />
-            </div>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            {smsStatus === "idle" && (
-              <>
-                <div className="space-y-2">
-                  <Label htmlFor="smsProvider" className="text-purple-900">Provider</Label>
-                  <Input
-                    id="smsProvider"
-                    placeholder="e.g., Twilio, Plivo, AWS SNS"
-                    value={smsProvider}
-                    onChange={(e) => setSmsProvider(e.target.value)}
-                    className="bg-white border-purple-200"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="smsApiKey" className="text-purple-900">API Key</Label>
-                  <Input
-                    id="smsApiKey"
-                    type="password"
-                    placeholder="Enter your API key"
-                    value={smsApiKey}
-                    onChange={(e) => setSmsApiKey(e.target.value)}
-                    className="bg-white border-purple-200"
-                  />
-                </div>
-                <Button
-                  onClick={handleConnectSms}
-                  disabled={!smsProvider || !smsApiKey}
-                  className="w-full bg-gradient-to-r from-green-500 to-green-600"
-                >
-                  Connect SMS
-                </Button>
-              </>
-            )}
-
-            {smsStatus === "connecting" && (
-              <div className="py-8 flex flex-col items-center justify-center gap-3">
-                <Loader2 className="w-8 h-8 text-purple-500 animate-spin" />
-                <p className="text-sm text-purple-700">Connecting to {smsProvider}...</p>
-              </div>
-            )}
-
-            {smsStatus === "connected" && (
-              <div className="space-y-4">
-                <div className="p-4 rounded-lg bg-green-50 border border-green-200">
-                  <div className="flex items-center gap-2 text-green-800 mb-2">
-                    <CheckCircle2 className="w-4 h-4" />
-                    <span className="font-medium">Successfully connected</span>
-                  </div>
-                  <p className="text-sm text-green-700">Connected to {smsProvider}</p>
-                </div>
-                <Button
-                  onClick={handleTestSms}
-                  disabled={testingSms}
-                  variant="outline"
-                  className="w-full"
-                >
-                  {testingSms ? (
-                    <>
-                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                      Sending Test...
-                    </>
-                  ) : (
-                    <>
-                      <Send className="w-4 h-4 mr-2" />
-                      Send Test SMS
-                    </>
-                  )}
-                </Button>
-              </div>
-            )}
-
-            {smsStatus === "failed" && (
-              <div className="space-y-4">
-                <div className="p-4 rounded-lg bg-red-50 border border-red-200">
-                  <div className="flex items-center gap-2 text-red-800 mb-2">
-                    <XCircle className="w-4 h-4" />
-                    <span className="font-medium">Connection failed</span>
-                  </div>
-                  <p className="text-sm text-red-700">Invalid credentials or service unavailable</p>
-                </div>
-                <Button onClick={handleRetrySms} variant="outline" className="w-full">
                   Retry Connection
                 </Button>
               </div>

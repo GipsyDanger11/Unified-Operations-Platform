@@ -5,8 +5,15 @@ const integrationSchema = new mongoose.Schema({
 
     // Email configuration (SendGrid)
     email: {
-        provider: { type: String, default: 'sendgrid' },
+        provider: { type: String, default: 'emailjs' },
+        // EmailJS Credentials
+        serviceId: String,
+        templateId: String,
+        publicKey: String,
+        privateKey: String,
+        // SendGrid Legacy
         apiKey: String,
+
         fromEmail: String,
         fromName: String,
         isConfigured: { type: Boolean, default: false },

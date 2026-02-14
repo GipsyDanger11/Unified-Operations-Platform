@@ -66,7 +66,6 @@ router.get('/search', authenticate, async (req, res) => {
                 workspace: req.user.workspace,
                 $or: [
                     { name: { $regex: searchQuery, $options: 'i' } },
-                    { sku: { $regex: searchQuery, $options: 'i' } },
                     { category: { $regex: searchQuery, $options: 'i' } }
                 ]
             }).limit(5);
@@ -75,7 +74,7 @@ router.get('/search', authenticate, async (req, res) => {
                 type: 'inventory',
                 id: i._id,
                 title: i.name,
-                subtitle: `SKU: ${i.sku} | Stock: ${i.currentStock}`,
+                subtitle: `Stock: ${i.currentQuantity} ${i.unit}`,
                 link: `/inventory`
             })));
         }

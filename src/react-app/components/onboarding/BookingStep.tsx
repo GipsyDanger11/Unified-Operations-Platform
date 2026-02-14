@@ -14,6 +14,7 @@ interface BookingStepProps {
   onBack: () => void;
   isFirstStep?: boolean;
   isLastStep?: boolean;
+  title?: string;
 }
 
 const timeSlots = [
@@ -30,7 +31,7 @@ const timeSlots = [
 
 const daysOfWeek = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
 
-export default function BookingStep({ data, onNext, onBack }: BookingStepProps) {
+export default function BookingStep({ data, onNext, onBack, title }: BookingStepProps) {
   const [serviceName, setServiceName] = useState(data.serviceName || "");
   const [duration, setDuration] = useState(data.duration || "60");
   const [location, setLocation] = useState(data.location || "");
@@ -73,8 +74,8 @@ export default function BookingStep({ data, onNext, onBack }: BookingStepProps) 
   return (
     <div className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-500">
       <div>
-        <h2 className="text-3xl font-bold text-purple-950">Booking Setup</h2>
-        <p className="text-purple-700 mt-2">Configure your service and availability for customer bookings</p>
+        <h2 className="text-3xl font-bold text-purple-950">{title || "Booking Setup"}</h2>
+        <p className="text-purple-700 mt-2">Configure your {title ? title.toLowerCase() : "service"} and details</p>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
