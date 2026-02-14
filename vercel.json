@@ -1,9 +1,14 @@
 {
     "version": 2,
+    "functions": {
+        "api/index.js": {
+            "includeFiles": "backend/**"
+        }
+    },
     "rewrites": [
         {
             "source": "/api/(.*)",
-            "destination": "/backend/server.js"
+            "destination": "/api/index.js"
         },
         {
             "source": "/(.*)",
