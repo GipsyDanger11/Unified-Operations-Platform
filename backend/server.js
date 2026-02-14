@@ -65,6 +65,12 @@ app.use((err, req, res, next) => {
     res.status(500).json({ error: 'Something went wrong!', message: err.message });
 });
 
-app.listen(PORT, () => {
-    console.log(`🚀 Server running on port ${PORT}`);
-});
+// Export the app for Vercel serverless
+export default app;
+
+// Only start the server if we're not running as a Vercel serverless function
+if (process.env.NODE_ENV !== 'production' || !process.env.VERCEL) {
+    app.listen(PORT, () => {
+        console.log(`🚀 Server running on port ${PORT}`);
+    });
+}
