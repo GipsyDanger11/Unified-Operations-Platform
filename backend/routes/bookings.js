@@ -33,6 +33,7 @@ router.post('/public/:workspaceId', async (req, res) => {
         });
 
         if (!contact) {
+            console.log(`🆕 Creating new contact for ${email}`);
             contact = await Contact.create({
                 workspace: workspaceId,
                 firstName,
@@ -42,7 +43,17 @@ router.post('/public/:workspaceId', async (req, res) => {
                 source: 'booking',
                 status: 'new',
             });
+        } else {
+            console.log(`👤 Found existing contact: ${contact._id} (Current email: ${contact.email})`);
+            console.log(`📝 Updating contact with new email: ${email}`);
+            // Update existing contact with latest info provided during booking
+            contact.firstName = firstName || contact.firstName;
+            contact.lastName = lastName || contact.lastName;
+            contact.email = email?.toLowerCase() || contact.email;
+            contact.phone = phone || contact.phone;
+            await contact.save();
         }
+        console.log(`✅ Final contact email for booking: ${contact.email}`);
 
         // Calculate end time
         const startTime = new Date(dateTime);
@@ -145,6 +156,21 @@ router.patch('/:id/status', authenticate, checkWorkspaceActive, async (req, res)
 
         if (!booking) {
             return res.status(404).json({ error: 'Booking not found' });
+        }
+
+        // Emit automation events for status changes
+        if (status === 'confirmed') {
+            emitAutomationEvent('booking_confirmed', {
+                workspaceId: req.user.workspace,
+                booking,
+                contact: booking.contact
+            });
+        } else if (status === 'completed') {
+            emitAutomationEvent('booking_completed', {
+                workspaceId: req.user.workspace,
+                booking,
+                contact: booking.contact
+            });
         }
 
         res.json({ message: 'Booking status updated', booking });

@@ -1,5 +1,4 @@
 import { useState, useEffect, useRef } from "react";
-// Card and CardContent removed as they were unused
 import { Avatar, AvatarFallback } from "@/react-app/components/ui/avatar";
 import { Button } from "@/react-app/components/ui/button";
 import { Input } from "@/react-app/components/ui/input";
@@ -19,10 +18,11 @@ interface Contact {
 interface Message {
   _id: string;
   content: string;
-  direction: 'inbound' | 'outbound';
-  channel: 'email' | 'sms';
-  createdAt: string;
-  status: 'sent' | 'delivered' | 'read' | 'failed';
+  sender: 'contact' | 'staff' | 'system';
+  channel: 'email' | 'sms' | 'internal';
+  createdAt?: string;
+  sentAt?: string;
+  status?: 'sent' | 'delivered' | 'read' | 'failed';
 }
 
 interface Conversation {
@@ -49,12 +49,8 @@ export default function InboxPage() {
   useEffect(() => {
     const fetchConversations = async () => {
       try {
-        const data = await api.getConversations();
-        setConversations(Array.isArray(data) ? data : []);
-        if (data.length > 0 && !selectedConversationId) {
-          // Select first one by default if none selected
-          // setSelectedConversationId(data[0]._id);
-        }
+        const response = await api.getConversations();
+        setConversations(Array.isArray(response.conversations) ? response.conversations : []);
       } catch (error) {
         console.error("Failed to fetch conversations", error);
         setConversations([]);
@@ -73,7 +69,7 @@ export default function InboxPage() {
       setMessagesLoading(true);
       try {
         const data = await api.getConversation(selectedConversationId);
-        setCurrentConversation(data);
+        setCurrentConversation(data.conversation);
       } catch (error) {
         console.error("Failed to fetch conversation details", error);
       } finally {
@@ -96,17 +92,15 @@ export default function InboxPage() {
 
     setSending(true);
     try {
-      // Default to email for now, ideally channel selector
       const channel = 'email';
       await api.sendMessage(selectedConversationId, newMessage, channel);
 
-      // Optimistic update or refetch
       const newMsg: Message = {
         _id: Date.now().toString(),
         content: newMessage,
-        direction: 'outbound',
+        sender: 'staff',
         channel,
-        createdAt: new Date().toISOString(),
+        sentAt: new Date().toISOString(),
         status: 'sent'
       };
 
@@ -125,8 +119,7 @@ export default function InboxPage() {
     }
   };
 
-
-  // Handle URL query for conversation selection (from Dashboard)
+  // Handle URL query for conversation selection
   useEffect(() => {
     const searchParams = new URLSearchParams(window.location.search);
     const convId = searchParams.get("conversationId");
@@ -159,6 +152,13 @@ export default function InboxPage() {
         </div>
         <ScrollArea className="flex-1">
           <div className="flex flex-col p-2 space-y-1">
+            {conversations.length === 0 && !loading && (
+              <div className="p-4 text-center text-gray-500 mt-10">
+                <MessageSquare className="w-8 h-8 mx-auto mb-2 text-gray-300" />
+                <p className="text-sm font-medium">No messages yet</p>
+                <p className="text-xs mt-1">New inquiries from your forms and bookings will appear here.</p>
+              </div>
+            )}
             {conversations.map((conv) => (
               <button
                 key={conv._id}
@@ -173,14 +173,14 @@ export default function InboxPage() {
                     ? "bg-purple-500 text-white border-purple-400"
                     : "bg-purple-100 text-purple-700"
                     }`}>
-                    {conv.contact.firstName[0]}{conv.contact.lastName[0]}
+                    {conv.contact?.firstName?.[0] || "?"}{conv.contact?.lastName?.[0] || "?"}
                   </AvatarFallback>
                 </Avatar>
                 <div className="flex-1 overflow-hidden">
                   <div className="flex justify-between items-start">
                     <span className={`font-semibold truncate ${selectedConversationId === conv._id ? "text-white" : "text-gray-900"
                       }`}>
-                      {conv.contact.firstName} {conv.contact.lastName}
+                      {conv.contact?.firstName || "Unknown"} {conv.contact?.lastName || "Contact"}
                     </span>
                     {conv.lastMessageAt && (
                       <span className={`text-[10px] whitespace-nowrap ml-2 ${selectedConversationId === conv._id ? "text-purple-200" : "text-gray-400"
@@ -191,7 +191,7 @@ export default function InboxPage() {
                   </div>
                   <p className={`text-sm truncate mt-0.5 ${selectedConversationId === conv._id ? "text-purple-100" : "text-gray-500"
                     }`}>
-                    {conv.lastMessage || "No messages yet"}
+                    {conv.lastMessage || (conv.messages && conv.messages.length > 0 ? conv.messages[conv.messages.length - 1].content : "No messages yet")}
                   </p>
                 </div>
                 {conv.unreadCount > 0 && (
@@ -215,20 +215,20 @@ export default function InboxPage() {
               <div className="flex items-center gap-3">
                 <Avatar className="w-10 h-10 border border-gray-100">
                   <AvatarFallback className="bg-gradient-to-br from-purple-500 to-purple-600 text-white">
-                    {currentConversation?.contact.firstName[0]}
+                    {currentConversation?.contact?.firstName?.[0] || "?"}
                   </AvatarFallback>
                 </Avatar>
                 <div>
                   <h2 className="font-bold text-gray-900">
-                    {currentConversation?.contact.firstName} {currentConversation?.contact.lastName}
+                    {currentConversation?.contact?.firstName || "Unknown"} {currentConversation?.contact?.lastName || "Contact"}
                   </h2>
                   <div className="text-xs text-gray-500 flex items-center gap-3">
                     <span className="flex items-center gap-1.5">
-                      <Mail className="w-3 h-3 text-gray-400" /> {currentConversation?.contact.email}
+                      <Mail className="w-3 h-3 text-gray-400" /> {currentConversation?.contact?.email || "No email"}
                     </span>
-                    {currentConversation?.contact.phone && (
+                    {currentConversation?.contact?.phone && (
                       <span className="flex items-center gap-1.5">
-                        <Phone className="w-3 h-3 text-gray-400" /> {currentConversation?.contact.phone}
+                        <Phone className="w-3 h-3 text-gray-400" /> {currentConversation?.contact?.phone}
                       </span>
                     )}
                   </div>
@@ -252,21 +252,21 @@ export default function InboxPage() {
                 currentConversation?.messages?.map((msg, idx) => (
                   <div
                     key={idx}
-                    className={`flex ${msg.direction === 'outbound' ? 'justify-end' : 'justify-start'}`}
+                    className={`flex ${msg.sender === 'staff' ? 'justify-end' : 'justify-start'}`}
                   >
-                    <div className={`max-w-[70%] group relative ${msg.direction === 'outbound' ? 'items-end' : 'items-start'} flex flex-col`}>
+                    <div className={`max-w-[70%] group relative ${msg.sender === 'staff' ? 'items-end' : 'items-start'} flex flex-col`}>
                       <div
-                        className={`rounded-2xl p-4 shadow-sm border ${msg.direction === 'outbound'
+                        className={`rounded-2xl p-4 shadow-sm border ${msg.sender === 'staff'
                           ? 'bg-purple-600 text-white border-purple-500 rounded-tr-sm'
                           : 'bg-white text-gray-800 border-gray-100 rounded-tl-sm'
                           }`}
                       >
                         <p className="text-sm leading-relaxed">{msg.content}</p>
                       </div>
-                      <span className={`text-[10px] mt-1.5 px-1 font-medium ${msg.direction === 'outbound' ? 'text-gray-400' : 'text-gray-400'}`}>
-                        {new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                        {msg.direction === 'outbound' && (
-                          <span className="ml-1 opacity-70">• {msg.status}</span>
+                      <span className={`text-[10px] mt-1.5 px-1 font-medium text-gray-400`}>
+                        {new Date(msg.sentAt || msg.createdAt || Date.now()).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                        {msg.sender === 'staff' && (
+                          <span className="ml-1 opacity-70">• {msg.status || 'sent'}</span>
                         )}
                       </span>
                     </div>

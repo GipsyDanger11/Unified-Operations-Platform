@@ -34,14 +34,15 @@ interface AppLayoutProps {
   children: ReactNode;
 }
 
-const navigation = [
+const defaultNavigation = [
   { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
-  { name: "Inbox", href: "/inbox", icon: MessageSquare, badge: 12 },
-  { name: "Bookings", href: "/bookings", icon: Calendar, badge: 3 },
-  { name: "Forms", href: "/forms", icon: FileText, badge: 5 },
-  { name: "Inventory", href: "/inventory", icon: Package },
+  { name: "Inbox", href: "/inbox", icon: MessageSquare, id: "inbox" },
+  { name: "Bookings", href: "/bookings", icon: Calendar, id: "bookings" },
+  { name: "Forms", href: "/forms", icon: FileText, id: "forms" },
+  { name: "Inventory", href: "/inventory", icon: Package, id: "inventory" },
   { name: "Team", href: "/team", icon: Users },
   { name: "Automation", href: "/automation", icon: Zap },
+  { name: "Services", href: "/services", icon: Settings }, // Reusing Settings icon for now or I can import Wrench
   { name: "Settings", href: "/settings", icon: Settings },
 ];
 
@@ -50,7 +51,9 @@ export default function AppLayout({ children }: AppLayoutProps) {
   const navigate = useNavigate();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [user, setUser] = useState<any>(null);
+  const [workspace, setWorkspace] = useState<any>(null);
   const [alerts, setAlerts] = useState<any[]>([]);
+  const [metrics, setMetrics] = useState<any>(null);
 
   // Search state
   const [searchQuery, setSearchQuery] = useState("");
@@ -60,13 +63,21 @@ export default function AppLayout({ children }: AppLayoutProps) {
   useEffect(() => {
     fetchUser();
     fetchAlerts();
-  }, []);
+    // fetchMetrics(); // Removed as it is causing issues and not strictly needed for layout if we only want alerts? 
+    // Wait, let's keep it but fix syntax.
+    fetchMetrics();
+    // Scroll to top on navigation
+    window.scrollTo(0, 0);
+  }, [location.pathname]);
 
   const fetchUser = async () => {
     try {
       const data = await api.getMe();
       if (data?.user) {
         setUser(data.user);
+      }
+      if (data?.workspace) {
+        setWorkspace(data.workspace);
       }
     } catch (error) {
       console.error("Failed to fetch user profile", error);
@@ -81,6 +92,15 @@ export default function AppLayout({ children }: AppLayoutProps) {
       }
     } catch (error) {
       console.error("Failed to fetch alerts", error);
+    }
+  };
+
+  const fetchMetrics = async () => {
+    try {
+      const data = await api.getDashboardMetrics();
+      setMetrics(data);
+    } catch (error) {
+      console.error("Failed to fetch metrics", error);
     }
   };
 
@@ -111,6 +131,28 @@ export default function AppLayout({ children }: AppLayoutProps) {
     setShowSearchResults(false);
     setSearchQuery("");
     navigate(link);
+  };
+
+  const getBadgeCount = (id?: string) => {
+    if (!metrics || !id) return null;
+    switch (id) {
+      case 'inbox': return metrics.messages?.unread || 0;
+      case 'bookings': return metrics.bookings?.today || 0;
+      case 'forms': return metrics.forms?.pending || 0;
+      case 'inventory': return (metrics.inventory?.lowStock || 0) + (metrics.inventory?.critical || 0);
+      default: return null;
+    }
+  };
+
+  // Helper to get initials
+  const getInitials = (name: string) => {
+    if (!name) return "W";
+    return name
+      .split(" ")
+      .map((n) => n[0])
+      .join("")
+      .toUpperCase()
+      .slice(0, 2);
   };
 
   return (
@@ -146,9 +188,10 @@ export default function AppLayout({ children }: AppLayoutProps) {
 
             {/* Navigation */}
             <nav className="flex-1 px-4 py-6 space-y-1 overflow-y-auto">
-              {navigation.map((item) => {
+              {defaultNavigation.map((item) => {
                 const isActive = location.pathname === item.href;
                 const Icon = item.icon;
+                const badgeCount = getBadgeCount(item.id);
 
                 return (
                   <Link
@@ -167,7 +210,7 @@ export default function AppLayout({ children }: AppLayoutProps) {
                       <Icon className={`w-5 h-5 ${isActive ? "" : "group-hover:scale-110 transition-transform"}`} />
                       <span className="font-medium">{item.name}</span>
                     </div>
-                    {item.badge ? (
+                    {badgeCount ? (
                       <Badge
                         variant={isActive ? "secondary" : "default"}
                         className={`
@@ -175,7 +218,7 @@ export default function AppLayout({ children }: AppLayoutProps) {
                           min-w-[24px] h-6 flex items-center justify-center
                         `}
                       >
-                        {item.badge}
+                        {badgeCount}
                       </Badge>
                     ) : null}
                   </Link>
@@ -213,7 +256,9 @@ export default function AppLayout({ children }: AppLayoutProps) {
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
                     <Button variant="outline" className="gap-2 bg-white hover:bg-purple-50 border-purple-200">
-                      <span className="font-medium text-purple-900">Acme Services</span>
+                      <span className="font-medium text-purple-900">
+                        {workspace ? workspace.businessName : "Loading..."}
+                      </span>
                       <ChevronDown className="w-4 h-4 text-purple-600" />
                     </Button>
                   </DropdownMenuTrigger>
@@ -222,10 +267,10 @@ export default function AppLayout({ children }: AppLayoutProps) {
                     <DropdownMenuSeparator />
                     <DropdownMenuItem className="flex items-center gap-3">
                       <div className="w-8 h-8 rounded bg-gradient-to-br from-purple-500 to-purple-600 flex items-center justify-center text-white text-xs font-bold">
-                        AS
+                        {getInitials(workspace?.businessName)}
                       </div>
                       <div className="flex-1">
-                        <div className="font-medium">Acme Services</div>
+                        <div className="font-medium">{workspace?.businessName || "Workspace"}</div>
                         <div className="text-xs text-muted-foreground">Active</div>
                       </div>
                     </DropdownMenuItem>
@@ -288,17 +333,23 @@ export default function AppLayout({ children }: AppLayoutProps) {
                         <div className="p-4 text-center text-sm text-muted-foreground">No new alerts</div>
                       ) : (
                         alerts.map((alert, i) => (
-                          <DropdownMenuItem key={i} className="flex flex-col items-start gap-1 p-3 cursor-pointer" onClick={() => navigate(alert.link)}>
+                          <DropdownMenuItem
+                            key={i}
+                            className="flex flex-col items-start gap-1 p-3 cursor-pointer hover:bg-purple-50 focus:bg-purple-50"
+                            onClick={() => {
+                              navigate(alert.link);
+                            }}
+                          >
                             <div className="flex items-center gap-2 w-full">
                               <div
-                                className={`w-2 h-2 rounded-full ${alert.type === "urgent" || alert.type === "error"
+                                className={`w-2 h-2 rounded-full flex-shrink-0 ${alert.type === "urgent" || alert.type === "error"
                                   ? "bg-red-500"
                                   : alert.type === "warning"
                                     ? "bg-yellow-500"
                                     : "bg-blue-500"
                                   }`}
                               />
-                              <span className="text-sm flex-1">{alert.message}</span>
+                              <span className="text-sm flex-1 leading-tight">{alert.message}</span>
                             </div>
                           </DropdownMenuItem>
                         ))

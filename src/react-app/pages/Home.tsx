@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Link, useNavigate } from "react-router";
+import { Link, useNavigate, useSearchParams } from "react-router";
 import WaveBackground from "@/react-app/components/WaveBackground";
 import { Button } from "@/react-app/components/ui/button";
 import { Card, CardDescription, CardHeader, CardTitle, CardContent, CardFooter } from "@/react-app/components/ui/card";
@@ -10,6 +10,8 @@ import { api } from "@/react-app/lib/api";
 
 export default function HomePage() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const publicWorkspaceId = searchParams.get("workspace");
   const [isLogin, setIsLogin] = useState(true);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -86,126 +88,147 @@ export default function HomePage() {
             <div className="space-y-8 text-center lg:text-left">
               <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/60 backdrop-blur-sm border border-purple-200 shadow-sm mx-auto lg:mx-0">
                 <Sparkles className="w-4 h-4 text-purple-600" />
-                <span className="text-sm font-medium text-purple-900">Hackathon Edition 2024</span>
+                <span className="text-sm font-medium text-purple-900">
+                  {publicWorkspaceId ? "Customer Portal" : "Hackathon Edition 2024"}
+                </span>
               </div>
 
               <h1 className="text-5xl lg:text-6xl font-bold tracking-tight text-purple-950 leading-tight">
-                One Platform to <br />
-                <span className="text-transparent bg-clip-text bg-gradient-to-r from-purple-600 to-indigo-600">Run Everything</span>
+                {publicWorkspaceId ? (
+                  <>
+                    Welcome to <br />
+                    <span className="text-transparent bg-clip-text bg-gradient-to-r from-purple-600 to-indigo-600">Our Services</span>
+                  </>
+                ) : (
+                  <>
+                    One Platform to <br />
+                    <span className="text-transparent bg-clip-text bg-gradient-to-r from-purple-600 to-indigo-600">Run Everything</span>
+                  </>
+                )}
               </h1>
 
               <p className="text-xl text-purple-700 leading-relaxed max-w-2xl mx-auto lg:mx-0">
-                Replace chaos with clarity. Manage bookings, communications, forms, and inventory in one beautiful interface.
+                {publicWorkspaceId
+                  ? "Book appointments and get in touch with us easily. No login required."
+                  : "Replace chaos with clarity. Manage bookings, communications, forms, and inventory in one beautiful interface."
+                }
               </p>
 
-              <div className="flex flex-col sm:flex-row items-center gap-4 justify-center lg:justify-start">
-                <Button size="lg" className="h-12 px-8 text-base bg-purple-600 hover:bg-purple-700 shadow-lg shadow-purple-500/20" onClick={() => {
-                  setIsLogin(false);
-                  document.getElementById('auth-card')?.scrollIntoView({ behavior: 'smooth' });
-                }}>
-                  Start Free Trial <ArrowRight className="ml-2 w-4 h-4" />
-                </Button>
-                <Link to="/dashboard">
-                  <Button size="lg" variant="outline" className="h-12 px-8 text-base border-purple-200 bg-white/50 backdrop-blur-sm hover:bg-white">
-                    View Demo Dashboard
+              {!publicWorkspaceId && (
+                <div className="flex flex-col sm:flex-row items-center gap-4 justify-center lg:justify-start">
+                  <Button size="lg" className="h-12 px-8 text-base bg-purple-600 hover:bg-purple-700 shadow-lg shadow-purple-500/20" onClick={() => {
+                    setIsLogin(false);
+                    document.getElementById('auth-card')?.scrollIntoView({ behavior: 'smooth' });
+                  }}>
+                    Start Free Trial <ArrowRight className="ml-2 w-4 h-4" />
                   </Button>
-                </Link>
-              </div>
-            </div>
-
-            {/* Right Column: Auth Card */}
-            <div className="w-full max-w-md mx-auto lg:ml-auto">
-              <Card id="auth-card" className="border-purple-100 shadow-2xl bg-white/90 backdrop-blur-sm">
-                <CardHeader>
-                  <CardTitle className="text-2xl text-purple-900 text-center">
-                    {isLogin ? "Welcome Back" : "Create Account"}
-                  </CardTitle>
-                  <CardDescription className="text-center">
-                    {isLogin ? "Login to access your dashboard" : "Get started with your free workspace"}
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <form onSubmit={handleSubmit} className="space-y-4">
-                    {error && (
-                      <div className="p-3 text-sm text-red-600 bg-red-50 rounded-md border border-red-100">
-                        {error}
-                      </div>
-                    )}
-
-                    {!isLogin && (
-                      <>
-                        <div className="grid grid-cols-2 gap-4">
-                          <div className="space-y-2">
-                            <Label htmlFor="firstName">First Name</Label>
-                            <Input id="firstName" name="firstName" required onChange={handleChange} />
-                          </div>
-                          <div className="space-y-2">
-                            <Label htmlFor="lastName">Last Name</Label>
-                            <Input id="lastName" name="lastName" required onChange={handleChange} />
-                          </div>
-                        </div>
-                        <div className="space-y-2">
-                          <Label htmlFor="businessName">Business Name</Label>
-                          <Input id="businessName" name="businessName" required onChange={handleChange} placeholder="Acme Services" />
-                        </div>
-                      </>
-                    )}
-
-                    <div className="space-y-2">
-                      <Label htmlFor="email">Email</Label>
-                      <Input id="email" name="email" type="email" required onChange={handleChange} placeholder="you@example.com" />
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label htmlFor="password">Password</Label>
-                      <Input id="password" name="password" type="password" required onChange={handleChange} />
-                    </div>
-
-                    <Button type="submit" className="w-full bg-purple-600 hover:bg-purple-700 h-10" disabled={isLoading}>
-                      {isLoading ? (
-                        <>
-                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                          {isLogin ? "Logging in..." : "Creating account..."}
-                        </>
-                      ) : (
-                        isLogin ? "Login" : "Create Account"
-                      )}
+                  <Link to="/dashboard">
+                    <Button size="lg" variant="outline" className="h-12 px-8 text-base border-purple-200 bg-white/50 backdrop-blur-sm hover:bg-white">
+                      View Demo Dashboard
                     </Button>
-                  </form>
-                </CardContent>
-                <CardFooter className="justify-center border-t border-purple-50 pt-4">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setIsLogin(!isLogin);
-                      setError(null);
-                    }}
-                    className="text-sm text-purple-600 hover:text-purple-800 hover:underline transition-all"
-                  >
-                    {isLogin ? "Don't have an account? Sign up" : "Already have an account? Login"}
-                  </button>
-                </CardFooter>
-              </Card>
+                  </Link>
+                </div>
+              )}
             </div>
+
+            {/* Right Column: Auth Card (Only show if NOT in customer mode) */}
+            {!publicWorkspaceId && (
+              <div className="w-full max-w-md mx-auto lg:ml-auto">
+                <Card id="auth-card" className="border-purple-100 shadow-2xl bg-white/90 backdrop-blur-sm">
+                  {/* ... existing auth card content ... */}
+                  <CardHeader>
+                    <CardTitle className="text-2xl text-purple-900 text-center">
+                      {isLogin ? "Welcome Back" : "Create Account"}
+                    </CardTitle>
+                    <CardDescription className="text-center">
+                      {isLogin ? "Login to access your dashboard" : "Get started with your free workspace"}
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <form onSubmit={handleSubmit} className="space-y-4">
+                      {error && (
+                        <div className="p-3 text-sm text-red-600 bg-red-50 rounded-md border border-red-100">
+                          {error}
+                        </div>
+                      )}
+
+                      {!isLogin && (
+                        <>
+                          <div className="grid grid-cols-2 gap-4">
+                            <div className="space-y-2">
+                              <Label htmlFor="firstName">First Name</Label>
+                              <Input id="firstName" name="firstName" required onChange={handleChange} />
+                            </div>
+                            <div className="space-y-2">
+                              <Label htmlFor="lastName">Last Name</Label>
+                              <Input id="lastName" name="lastName" required onChange={handleChange} />
+                            </div>
+                          </div>
+                          <div className="space-y-2">
+                            <Label htmlFor="businessName">Business Name</Label>
+                            <Input id="businessName" name="businessName" required onChange={handleChange} placeholder="Acme Services" />
+                          </div>
+                        </>
+                      )}
+
+                      <div className="space-y-2">
+                        <Label htmlFor="email">Email</Label>
+                        <Input id="email" name="email" type="email" required onChange={handleChange} placeholder="you@example.com" />
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label htmlFor="password">Password</Label>
+                        <Input id="password" name="password" type="password" required onChange={handleChange} />
+                      </div>
+
+                      <Button type="submit" className="w-full bg-purple-600 hover:bg-purple-700 h-10" disabled={isLoading}>
+                        {isLoading ? (
+                          <>
+                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                            {isLogin ? "Logging in..." : "Creating account..."}
+                          </>
+                        ) : (
+                          isLogin ? "Login" : "Create Account"
+                        )}
+                      </Button>
+                    </form>
+                  </CardContent>
+                  <CardFooter className="justify-center border-t border-purple-50 pt-4">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIsLogin(!isLogin);
+                        setError(null);
+                      }}
+                      className="text-sm text-purple-600 hover:text-purple-800 hover:underline transition-all"
+                    >
+                      {isLogin ? "Don't have an account? Sign up" : "Already have an account? Login"}
+                    </button>
+                  </CardFooter>
+                </Card>
+              </div>
+            )}
           </div>
         </div>
 
         {/* Customer Flows Section */}
         <div className="container mx-auto px-6 py-16 bg-gradient-to-br from-purple-50/50 to-indigo-50/50 rounded-3xl my-12">
-          <div className="text-center mb-12">
-            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/80 backdrop-blur-sm border border-purple-200 shadow-sm mb-4">
-              <Users className="w-4 h-4 text-purple-600" />
-              <span className="text-sm font-medium text-purple-900">Customer Journey</span>
+          {!publicWorkspaceId && (
+            <div className="text-center mb-12">
+              <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/80 backdrop-blur-sm border border-purple-200 shadow-sm mb-4">
+                <Users className="w-4 h-4 text-purple-600" />
+                <span className="text-sm font-medium text-purple-900">Customer Journey</span>
+              </div>
+              <h2 className="text-4xl font-bold text-purple-950 mb-4">Two Ways Customers Connect</h2>
+              <p className="text-lg text-purple-700 max-w-2xl mx-auto">
+                No login required. Customers interact through forms, booking pages, and automated messages.
+              </p>
             </div>
-            <h2 className="text-4xl font-bold text-purple-950 mb-4">Two Ways Customers Connect</h2>
-            <p className="text-lg text-purple-700 max-w-2xl mx-auto">
-              No login required. Customers interact through forms, booking pages, and automated messages.
-            </p>
-          </div>
+          )}
 
           <div className="grid lg:grid-cols-2 gap-8 max-w-6xl mx-auto">
             {/* Flow A: Contact First */}
-            <Card className="bg-white/80 backdrop-blur-sm border-purple-200 shadow-xl hover:shadow-2xl transition-all">
+            <Card className="bg-white/80 backdrop-blur-sm border-purple-200 shadow-xl hover:shadow-2xl transition-all flex flex-col">
               <CardHeader className="border-b border-purple-100 bg-gradient-to-br from-blue-50 to-purple-50">
                 <div className="flex items-center gap-3 mb-2">
                   <div className="w-10 h-10 rounded-full bg-blue-500 text-white flex items-center justify-center font-bold shadow-lg">
@@ -217,7 +240,7 @@ export default function HomePage() {
                   Customer reaches out, then books a service
                 </CardDescription>
               </CardHeader>
-              <CardContent className="pt-6 space-y-4">
+              <CardContent className="pt-6 space-y-4 flex-1">
                 <FlowStep number={1} title="Customer submits contact form" icon={<FileText className="w-4 h-4" />} />
                 <FlowStep
                   number={2}
@@ -236,10 +259,18 @@ export default function HomePage() {
                   automated
                 />
               </CardContent>
+              <CardFooter className="pt-6 border-t border-purple-100 bg-white/50">
+                <Button
+                  className="w-full bg-blue-600 hover:bg-blue-700 gap-2"
+                  onClick={() => navigate(`/contact?workspace=${publicWorkspaceId || 'DEMO'}`)}
+                >
+                  <MessageSquare className="w-4 h-4" /> Get in Touch
+                </Button>
+              </CardFooter>
             </Card>
 
             {/* Flow B: Book First */}
-            <Card className="bg-white/80 backdrop-blur-sm border-purple-200 shadow-xl hover:shadow-2xl transition-all">
+            <Card className="bg-white/80 backdrop-blur-sm border-purple-200 shadow-xl hover:shadow-2xl transition-all flex flex-col">
               <CardHeader className="border-b border-purple-100 bg-gradient-to-br from-purple-50 to-indigo-50">
                 <div className="flex items-center gap-3 mb-2">
                   <div className="w-10 h-10 rounded-full bg-purple-500 text-white flex items-center justify-center font-bold shadow-lg">
@@ -251,7 +282,7 @@ export default function HomePage() {
                   Customer books directly without prior contact
                 </CardDescription>
               </CardHeader>
-              <CardContent className="pt-6 space-y-4">
+              <CardContent className="pt-6 space-y-4 flex-1">
                 <FlowStep number={1} title="Customer opens booking page" icon={<Calendar className="w-4 h-4" />} />
                 <FlowStep number={2} title="Selects date & time" icon={<Calendar className="w-4 h-4" />} />
                 <FlowStep number={3} title="Enters contact details" icon={<FileText className="w-4 h-4" />} />
@@ -269,6 +300,14 @@ export default function HomePage() {
                   </p>
                 </div>
               </CardContent>
+              <CardFooter className="pt-6 border-t border-purple-100 bg-white/50">
+                <Button
+                  className="w-full bg-purple-600 hover:bg-purple-700 gap-2"
+                  onClick={() => navigate(`/book?workspace=${publicWorkspaceId || 'DEMO'}`)}
+                >
+                  <Calendar className="w-4 h-4" /> Book Appointment
+                </Button>
+              </CardFooter>
             </Card>
           </div>
 

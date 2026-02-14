@@ -5,7 +5,7 @@ import { Input } from "@/react-app/components/ui/input";
 import { Badge } from "@/react-app/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/react-app/components/ui/tabs";
 import { Label } from "@/react-app/components/ui/label";
-import { Building, Mail, MessageSquare, Save, Loader2, CheckCircle, AlertTriangle, ExternalLink } from "lucide-react";
+import { Building, Mail, Save, Loader2, CheckCircle, ExternalLink } from "lucide-react";
 import { api } from "@/react-app/lib/api";
 import { toast } from "react-toastify";
 
@@ -25,8 +25,7 @@ export default function SettingsPage() {
 
   // Integrations State
   const [integrationsStatus, setIntegrationsStatus] = useState<any>(null);
-  const [emailConfig, setEmailConfig] = useState({ serviceId: "", templateId: "", publicKey: "", privateKey: "", fromEmail: "", fromName: "" });
-  const [smsConfig, setSmsConfig] = useState({ accountSid: "", authToken: "", fromNumber: "" });
+  const [emailConfig, setEmailConfig] = useState({ smtpUser: "", smtpPassword: "", fromEmail: "", fromName: "" });
 
   useEffect(() => {
     fetchSettings();
@@ -51,10 +50,8 @@ export default function SettingsPage() {
       setIntegrationsStatus(integrations);
       if (integrations?.email) {
         setEmailConfig({
-          serviceId: integrations.email.serviceId || "",
-          templateId: integrations.email.templateId || "",
-          publicKey: integrations.email.publicKey || "",
-          privateKey: integrations.email.privateKey || "",
+          smtpUser: integrations.email.smtpUser || "",
+          smtpPassword: integrations.email.smtpPassword || "",
           fromEmail: integrations.email.fromEmail || "",
           fromName: integrations.email.fromName || ""
         });
@@ -81,18 +78,14 @@ export default function SettingsPage() {
     }
   };
 
-  const handleIntegrationSave = async (type: 'email' | 'sms') => {
+  const handleIntegrationSave = async () => {
     setSaving(true);
     try {
-      const payload: any = {};
-      if (type === 'email') payload.email = emailConfig;
-      if (type === 'sms') payload.sms = smsConfig;
+      const payload: any = { email: emailConfig };
 
       await api.completeOnboardingStep(2, payload);
       await fetchSettings(); // Refresh status
-      toast.success(`${type === 'email' ? 'Email' : 'SMS'} integration connected!`);
-
-      // Keep fields populated for editing
+      toast.success("Email integration connected!");
 
     } catch (error) {
       console.error(error);
@@ -199,8 +192,8 @@ export default function SettingsPage() {
                   <Mail className="w-5 h-5" />
                 </div>
                 <div>
-                  <CardTitle className="text-lg">Email Service (EmailJS)</CardTitle>
-                  <CardDescription>Transactional emails via EmailJS</CardDescription>
+                  <CardTitle className="text-lg">Email Service (Gmail SMTP)</CardTitle>
+                  <CardDescription>Transactional emails via Gmail</CardDescription>
                 </div>
               </div>
               {integrationsStatus?.email?.isConfigured ? (
@@ -217,56 +210,48 @@ export default function SettingsPage() {
               <div className="grid gap-4 md:grid-cols-2">
                 <div className="col-span-2 space-y-2">
                   <div className="flex items-center justify-between">
-                    <Label>EmailJS Configuration</Label>
+                    <Label>Gmail SMTP Configuration</Label>
                     <a
-                      href="https://dashboard.emailjs.com/admin"
+                      href="https://myaccount.google.com/apppasswords"
                       target="_blank"
                       rel="noopener noreferrer"
                       className="text-xs text-blue-600 hover:underline flex items-center gap-1"
                     >
-                      Open EmailJS Dashboard <ExternalLink className="w-3 h-3" />
+                      Get App Password <ExternalLink className="w-3 h-3" />
                     </a>
                   </div>
-                  <div className="text-xs text-muted-foreground bg-slate-50 p-2 rounded border border-slate-100 mb-2">
-                    1. <strong>Service ID:</strong> Email Services {'>'} Service ID (e.g., service_xyz)<br />
-                    2. <strong>Template ID:</strong> Email Templates {'>'} Template ID (e.g., template_abc)<br />
-                    3. <strong>Public Key:</strong> Account {'>'} Public Key<br />
-                    4. <strong>Private Key:</strong> Account {'>'} Private Key (Required for backend sending)
+                  <div className="text-xs text-muted-foreground bg-blue-50 p-2 rounded border border-blue-100 mb-2">
+                    <strong>Gmail App Password Required:</strong> Generate an App Password from your Google Account settings. This is NOT your regular Gmail password.
+                    <a href="https://support.google.com/accounts/answer/185833" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline ml-1">Learn how</a>
                   </div>
                 </div>
 
                 <div className="space-y-2">
-                  <Label>Service ID</Label>
+                  <Label>Gmail Address</Label>
                   <Input
-                    placeholder="service_..."
-                    value={emailConfig.serviceId}
-                    onChange={(e) => setEmailConfig({ ...emailConfig, serviceId: e.target.value })}
+                    type="email"
+                    placeholder="yourname@gmail.com"
+                    value={emailConfig.smtpUser}
+                    onChange={(e) => setEmailConfig({ ...emailConfig, smtpUser: e.target.value })}
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label>Template ID</Label>
+                  <Label>Gmail App Password</Label>
                   <Input
-                    placeholder="template_..."
-                    value={emailConfig.templateId}
-                    onChange={(e) => setEmailConfig({ ...emailConfig, templateId: e.target.value })}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label>Public Key (User ID)</Label>
-                  <Input
-                    placeholder="user_..."
+                    placeholder="16-character app password"
                     type="password"
-                    value={emailConfig.publicKey}
-                    onChange={(e) => setEmailConfig({ ...emailConfig, publicKey: e.target.value })}
+                    value={emailConfig.smtpPassword}
+                    onChange={(e) => setEmailConfig({ ...emailConfig, smtpPassword: e.target.value })}
                   />
+                  <p className="text-[10px] text-muted-foreground">Generate from Google Account settings, not your regular password</p>
                 </div>
                 <div className="space-y-2">
-                  <Label>Private Key (Access Token)</Label>
+                  <Label>From Email (Optional)</Label>
                   <Input
-                    placeholder="Required for server-side sending"
-                    type="password"
-                    value={emailConfig.privateKey}
-                    onChange={(e) => setEmailConfig({ ...emailConfig, privateKey: e.target.value })}
+                    type="email"
+                    placeholder="Leave blank to use Gmail address"
+                    value={emailConfig.fromEmail}
+                    onChange={(e) => setEmailConfig({ ...emailConfig, fromEmail: e.target.value })}
                   />
                 </div>
 
@@ -280,11 +265,11 @@ export default function SettingsPage() {
                 </div>
                 <div className="flex items-end">
                   <Button
-                    onClick={() => handleIntegrationSave('email')}
-                    disabled={saving || !emailConfig.serviceId || !emailConfig.publicKey}
+                    onClick={() => handleIntegrationSave()}
+                    disabled={saving || !emailConfig.smtpUser || !emailConfig.smtpPassword}
                     className="w-full"
                   >
-                    {saving ? "Connecting..." : "Connect EmailJS"}
+                    {saving ? "Connecting..." : "Connect Gmail SMTP"}
                   </Button>
                 </div>
               </div>

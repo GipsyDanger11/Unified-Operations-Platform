@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { Link } from "react-router";
+import { toast } from "react-toastify";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/react-app/components/ui/card";
 import { Button } from "@/react-app/components/ui/button";
 import { Input } from "@/react-app/components/ui/input";
@@ -12,6 +13,16 @@ import {
   TableHeader,
   TableRow
 } from "@/react-app/components/ui/table";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/react-app/components/ui/alert-dialog";
 import {
   Dialog,
   DialogContent,
@@ -43,6 +54,8 @@ export default function TeamPage() {
   const [isOnboarded, setIsOnboarded] = useState(false);
   const [staff, setStaff] = useState<Staff[]>([]);
   const [isInviteOpen, setIsInviteOpen] = useState(false);
+  const [memberToRemove, setMemberToRemove] = useState<{ id: string, name: string } | null>(null);
+  const [removing, setRemoving] = useState(false);
 
   // New Staff Form State
   const [newStaff, setNewStaff] = useState({
@@ -72,8 +85,9 @@ export default function TeamPage() {
       if (status?.workspace?.businessName) {
         setIsOnboarded(true);
         try {
-          const staffData = await api.getStaff();
-          setStaff(Array.isArray(staffData) ? staffData : []);
+          const response = await api.getStaff();
+          console.log('Staff API response:', response);
+          setStaff(Array.isArray(response.staff) ? response.staff : []);
         } catch (staffError) {
           console.error("Failed to fetch staff:", staffError);
           setStaff([]);
@@ -99,11 +113,34 @@ export default function TeamPage() {
         email: "",
         permissions: { inbox: true, bookings: false, forms: false, inventory: false }
       });
-      alert("Staff invited successfully!");
+      toast.success("Staff invited successfully! Check email for credentials.");
       checkStatusAndFetch();
     } catch (error) {
       console.error(error);
-      alert("Failed to invite staff.");
+      const errorMessage = (error as any).message || "Failed to invite staff. Please try again.";
+      toast.error(errorMessage);
+    }
+  };
+
+  const handleRemoveClick = (userId: string, memberName: string) => {
+    setMemberToRemove({ id: userId, name: memberName });
+  };
+
+  const handleConfirmRemove = async () => {
+    if (!memberToRemove) return;
+
+    setRemoving(true);
+    try {
+      await api.removeStaff(memberToRemove.id);
+      toast.success("Staff member removed successfully");
+      checkStatusAndFetch();
+    } catch (error) {
+      console.error(error);
+      const errorMessage = (error as any).message || "Failed to remove staff member";
+      toast.error(errorMessage);
+    } finally {
+      setRemoving(false);
+      setMemberToRemove(null);
     }
   };
 
@@ -211,7 +248,32 @@ export default function TeamPage() {
             Owner has full access. Staff members have restricted access based on permissions.
           </CardDescription>
         </CardHeader>
-        <CardContent>
+        <CardContent className="p-0">
+          <AlertDialog open={!!memberToRemove} onOpenChange={(open) => !open && setMemberToRemove(null)}>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Remove Team Member</AlertDialogTitle>
+                <AlertDialogDescription>
+                  Are you sure you want to remove <span className="font-semibold text-purple-900">{memberToRemove?.name}</span>?
+                  They will lose access to the workspace immediately.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel disabled={removing}>Cancel</AlertDialogCancel>
+                <AlertDialogAction
+                  onClick={(e) => {
+                    e.preventDefault();
+                    handleConfirmRemove();
+                  }}
+                  disabled={removing}
+                  className="bg-red-600 hover:bg-red-700"
+                >
+                  {removing ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : "Remove Access"}
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+
           <Table>
             <TableHeader>
               <TableRow>
@@ -227,10 +289,10 @@ export default function TeamPage() {
                   <TableCell className="font-medium">
                     <div className="flex items-center gap-2">
                       <div className="w-8 h-8 rounded-full bg-purple-100 flex items-center justify-center text-purple-600 font-bold text-xs">
-                        {member.firstName[0]}{member.lastName[0]}
+                        {member.firstName?.[0] || '?'}{member.lastName?.[0] || '?'}
                       </div>
                       <div>
-                        {member.firstName} {member.lastName}
+                        {member.firstName || 'Unknown'} {member.lastName || 'User'}
                         <div className="text-xs text-gray-500">{member.email}</div>
                       </div>
                     </div>
@@ -256,7 +318,12 @@ export default function TeamPage() {
                   </TableCell>
                   <TableCell className="text-right">
                     {member.role !== 'owner' && (
-                      <Button variant="ghost" size="sm" className="text-red-500 hover:text-red-600 hover:bg-red-50">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="text-red-500 hover:text-red-600 hover:bg-red-50"
+                        onClick={() => handleRemoveClick(member._id, `${member.firstName || 'Unknown'} ${member.lastName || 'User'}`)}
+                      >
                         Remove
                       </Button>
                     )}

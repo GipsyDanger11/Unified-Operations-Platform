@@ -76,6 +76,7 @@ router.post('/:id/messages', authenticate, checkWorkspaceActive, requirePermissi
             deliveryStatus: 'pending',
         });
 
+        conversation.lastMessage = content.substring(0, 100);
         conversation.lastMessageAt = new Date();
 
         // Pause automation when staff replies
@@ -91,12 +92,16 @@ router.post('/:id/messages', authenticate, checkWorkspaceActive, requirePermissi
 
         // Send via selected channel
         if (channel === 'email' && conversation.contact.email) {
+            const replyLink = `http://localhost:5173/view-message/${conversation._id}`;
+            const emailContent = `${content}\n\nTo reply, please visit: ${replyLink}`;
+            const emailHtml = `<p>${content}</p><br/><hr/><p>To reply, please <a href="${replyLink}">click here</a>.</p>`;
+
             await sendEmail(
                 req.user.workspace,
                 conversation.contact.email,
                 'Message from our team',
-                content,
-                content
+                emailHtml,
+                emailContent
             );
 
             conversation.messages[conversation.messages.length - 1].deliveryStatus = 'sent';

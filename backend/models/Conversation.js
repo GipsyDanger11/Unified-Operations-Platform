@@ -23,6 +23,7 @@ const conversationSchema = new mongoose.Schema({
     pausedAt: Date,
     pausedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
 
+    lastMessage: { type: String }, // Cached preview of the last message
     lastMessageAt: { type: Date, default: Date.now },
     createdAt: { type: Date, default: Date.now },
     updatedAt: { type: Date, default: Date.now },

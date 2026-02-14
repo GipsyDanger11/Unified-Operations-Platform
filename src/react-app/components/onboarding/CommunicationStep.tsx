@@ -19,10 +19,10 @@ type ConnectionStatus = "idle" | "connecting" | "connected" | "failed";
 
 export default function CommunicationStep({ data, onNext, onBack }: CommunicationStepProps) {
   const [emailStatus, setEmailStatus] = useState<ConnectionStatus>(data.emailStatus || "idle");
-  const [emailJsServiceId, setEmailJsServiceId] = useState(data.email?.serviceId || data.emailServiceId || "");
-  const [emailJsTemplateId, setEmailJsTemplateId] = useState(data.email?.templateId || data.emailTemplateId || "");
-  const [emailJsPublicKey, setEmailJsPublicKey] = useState(data.email?.publicKey || data.emailPublicKey || "");
-  const [emailJsPrivateKey, setEmailJsPrivateKey] = useState(data.email?.privateKey || data.emailPrivateKey || "");
+  const [smtpUser, setSmtpUser] = useState(data.email?.smtpUser || "");
+  const [smtpPassword, setSmtpPassword] = useState(data.email?.smtpPassword || "");
+  const [fromEmail, setFromEmail] = useState(data.email?.fromEmail || "");
+  const [fromName, setFromName] = useState(data.email?.fromName || "");
 
   const [testingEmail, setTestingEmail] = useState(false);
 
@@ -48,10 +48,12 @@ export default function CommunicationStep({ data, onNext, onBack }: Communicatio
       emailStatus,
       // Nested Payload for Backend
       email: {
-        serviceId: emailJsServiceId,
-        templateId: emailJsTemplateId,
-        publicKey: emailJsPublicKey,
-        privateKey: emailJsPrivateKey,
+        smtpHost: "smtp.gmail.com",
+        smtpPort: 587,
+        smtpUser,
+        smtpPassword,
+        fromEmail: fromEmail || smtpUser,
+        fromName,
       },
     });
   };
@@ -62,7 +64,7 @@ export default function CommunicationStep({ data, onNext, onBack }: Communicatio
     <div className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-500">
       <div>
         <h2 className="text-3xl font-bold text-purple-950">Communication Setup</h2>
-        <p className="text-purple-700 mt-2">Connect your email provider to communicate with customers</p>
+        <p className="text-purple-700 mt-2">Connect your Gmail account to communicate with customers</p>
       </div>
 
       <div className="grid grid-cols-1 gap-6">
@@ -75,8 +77,8 @@ export default function CommunicationStep({ data, onNext, onBack }: Communicatio
                   <Mail className="w-5 h-5" />
                 </div>
                 <div>
-                  <CardTitle className="text-purple-950">Email Service (EmailJS)</CardTitle>
-                  <CardDescription>Connect via EmailJS credentials</CardDescription>
+                  <CardTitle className="text-purple-950">Email Service (Gmail SMTP)</CardTitle>
+                  <CardDescription>Connect via Gmail App Password</CardDescription>
                 </div>
               </div>
               <StatusBadge status={emailStatus} />
@@ -85,65 +87,94 @@ export default function CommunicationStep({ data, onNext, onBack }: Communicatio
           <CardContent className="space-y-4">
             {emailStatus === "idle" && (
               <>
+                <div className="p-3 rounded-lg bg-blue-50 border border-blue-200">
+                  <div className="flex items-start gap-2">
+                    <Mail className="w-4 h-4 text-blue-600 mt-0.5" />
+                    <div className="text-xs text-blue-800">
+                      <p className="font-medium mb-1">Gmail App Password Required</p>
+                      <p>You'll need to generate an App Password from your Google Account.
+                        <a
+                          href="https://myaccount.google.com/apppasswords"
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-blue-600 hover:underline ml-1 inline-flex items-center gap-1"
+                        >
+                          Get App Password <ExternalLink className="w-3 h-3" />
+                        </a>
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
                 <div className="space-y-2">
-                  <Label htmlFor="emailJsServiceId" className="text-purple-900">Service ID</Label>
+                  <Label htmlFor="smtpUser" className="text-purple-900">Gmail Address</Label>
                   <Input
-                    id="emailJsServiceId"
-                    placeholder="e.g., service_xxxxxxxxx"
-                    value={emailJsServiceId}
-                    onChange={(e) => setEmailJsServiceId(e.target.value)}
+                    id="smtpUser"
+                    type="email"
+                    placeholder="yourname@gmail.com"
+                    value={smtpUser}
+                    onChange={(e) => setSmtpUser(e.target.value)}
                     className="bg-white border-purple-200"
                   />
                 </div>
-                <div className="space-y-2">
-                  <Label htmlFor="emailJsTemplateId" className="text-purple-900">Template ID</Label>
-                  <Input
-                    id="emailJsTemplateId"
-                    placeholder="e.g., template_xxxxxxxxx"
-                    value={emailJsTemplateId}
-                    onChange={(e) => setEmailJsTemplateId(e.target.value)}
-                    className="bg-white border-purple-200"
-                  />
-                </div>
+
                 <div className="space-y-2">
                   <div className="flex items-center justify-between">
-                    <Label htmlFor="emailJsPublicKey" className="text-purple-900">Public Key</Label>
+                    <Label htmlFor="smtpPassword" className="text-purple-900">Gmail App Password</Label>
                     <a
-                      href="https://www.emailjs.com/docs/sdk/init/"
+                      href="https://support.google.com/accounts/answer/185833"
                       target="_blank"
                       rel="noopener noreferrer"
                       className="text-xs text-blue-600 hover:underline flex items-center gap-1"
                     >
-                      Get Keys <ExternalLink className="w-3 h-3" />
+                      How to get? <ExternalLink className="w-3 h-3" />
                     </a>
                   </div>
                   <Input
-                    id="emailJsPublicKey"
+                    id="smtpPassword"
                     type="password"
-                    placeholder="Enter your Public Key"
-                    value={emailJsPublicKey}
-                    onChange={(e) => setEmailJsPublicKey(e.target.value)}
+                    placeholder="16-character app password"
+                    value={smtpPassword}
+                    onChange={(e) => setSmtpPassword(e.target.value)}
                     className="bg-white border-purple-200"
                   />
+                  <p className="text-[10px] text-muted-foreground">
+                    This is NOT your regular Gmail password. Generate an App Password from Google Account settings.
+                  </p>
                 </div>
+
                 <div className="space-y-2">
-                  <Label htmlFor="emailJsPrivateKey" className="text-purple-900">Private Key</Label>
-                  <p className="text-[10px] text-muted-foreground">Required for secure server-side sending.</p>
+                  <Label htmlFor="fromEmail" className="text-purple-900">From Email (Optional)</Label>
                   <Input
-                    id="emailJsPrivateKey"
-                    type="password"
-                    placeholder="Enter your Private Key"
-                    value={emailJsPrivateKey}
-                    onChange={(e) => setEmailJsPrivateKey(e.target.value)}
+                    id="fromEmail"
+                    type="email"
+                    placeholder="Same as Gmail address if left blank"
+                    value={fromEmail}
+                    onChange={(e) => setFromEmail(e.target.value)}
+                    className="bg-white border-purple-200"
+                  />
+                  <p className="text-[10px] text-muted-foreground">
+                    Leave blank to use your Gmail address
+                  </p>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="fromName" className="text-purple-900">From Name</Label>
+                  <Input
+                    id="fromName"
+                    placeholder="Your Business Name"
+                    value={fromName}
+                    onChange={(e) => setFromName(e.target.value)}
                     className="bg-white border-purple-200"
                   />
                 </div>
+
                 <Button
                   onClick={handleConnectEmail}
-                  disabled={!emailJsServiceId || !emailJsTemplateId || !emailJsPublicKey || !emailJsPrivateKey}
+                  disabled={!smtpUser || !smtpPassword || !fromName}
                   className="w-full bg-gradient-to-r from-blue-500 to-blue-600"
                 >
-                  Connect EmailJS
+                  Connect Gmail SMTP
                 </Button>
               </>
             )}
@@ -151,7 +182,7 @@ export default function CommunicationStep({ data, onNext, onBack }: Communicatio
             {emailStatus === "connecting" && (
               <div className="py-8 flex flex-col items-center justify-center gap-3">
                 <Loader2 className="w-8 h-8 text-purple-500 animate-spin" />
-                <p className="text-sm text-purple-700">Connecting to EmailJS...</p>
+                <p className="text-sm text-purple-700">Connecting to Gmail SMTP...</p>
               </div>
             )}
 
@@ -162,7 +193,7 @@ export default function CommunicationStep({ data, onNext, onBack }: Communicatio
                     <CheckCircle2 className="w-4 h-4" />
                     <span className="font-medium">Successfully connected</span>
                   </div>
-                  <p className="text-sm text-green-700">Connected to EmailJS</p>
+                  <p className="text-sm text-green-700">Connected to Gmail SMTP</p>
                 </div>
                 <Button
                   onClick={handleTestEmail}

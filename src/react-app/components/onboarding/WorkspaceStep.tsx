@@ -17,6 +17,7 @@ interface WorkspaceStepProps {
 export default function WorkspaceStep({ data, onNext }: WorkspaceStepProps) {
   const [formData, setFormData] = useState({
     businessName: data.businessName || "",
+    businessType: data.businessType || "",
     address: data.address || "",
     timeZone: data.timeZone || "America/New_York",
     contactEmail: data.contactEmail || "",
@@ -31,7 +32,7 @@ export default function WorkspaceStep({ data, onNext }: WorkspaceStepProps) {
     setFormData({ ...formData, [field]: value });
   };
 
-  const isValid = formData.businessName && formData.address && formData.contactEmail;
+  const isValid = formData.businessName && formData.businessType && formData.address && formData.contactEmail;
 
   return (
     <div className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-500">
@@ -61,6 +62,39 @@ export default function WorkspaceStep({ data, onNext }: WorkspaceStepProps) {
                       className="pl-10 bg-white border-purple-200 focus:border-purple-500 focus:ring-purple-500"
                       required
                     />
+                  </div>
+                </div>
+
+                <div className="space-y-3">
+                  <Label className="text-purple-900">Business Type</Label>
+                  <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                    {[
+                      { id: "health", label: "Health & Wellness", emoji: "🧘" },
+                      { id: "electric", label: "Trade / Home Services", emoji: "🔧" },
+                      { id: "sports", label: "Sports & Fitness", emoji: "🏃" },
+                      { id: "retail", label: "Retail & E-commerce", emoji: "🛍️" },
+                      { id: "professional", label: "Professional Services", emoji: "💼" },
+                      { id: "other", label: "Other Business", emoji: "🏢" }
+                    ].map((type) => (
+                      <button
+                        key={type.id}
+                        type="button"
+                        onClick={() => updateField("businessType", type.id)}
+                        className={`
+                          flex flex-col items-center justify-center p-3 rounded-xl border transition-all duration-200
+                          ${formData.businessType === type.id
+                            ? "border-purple-500 bg-purple-50 text-purple-900 shadow-md shadow-purple-500/10 scale-[1.02]"
+                            : "border-purple-100 bg-white text-gray-600 hover:border-purple-300 hover:bg-purple-50/50"
+                          }
+                        `}
+                      >
+                        <span className="text-2xl mb-2">{type.emoji}</span>
+                        <span className="text-xs font-medium text-center leading-tight">{type.label}</span>
+                        {formData.businessType === type.id && (
+                          <div className="absolute top-2 right-2 w-2 h-2 rounded-full bg-purple-500" />
+                        )}
+                      </button>
+                    ))}
                   </div>
                 </div>
 
@@ -144,6 +178,9 @@ export default function WorkspaceStep({ data, onNext }: WorkspaceStepProps) {
                 <h3 className="font-bold text-purple-950 mb-1">
                   {formData.businessName || "Your Business"}
                 </h3>
+                <p className="text-xs font-semibold text-purple-500 uppercase tracking-widest mb-2">
+                  {formData.businessType || "TYPE"}
+                </p>
                 <p className="text-sm text-purple-700 mb-2">
                   {formData.address || "Address not set"}
                 </p>

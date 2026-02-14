@@ -32,6 +32,8 @@ const setupEventListeners = () => {
     automationEvents.on('contact_created', handleContactCreated);
     automationEvents.on('booking_created', handleBookingCreated);
     automationEvents.on('staff_reply', handleStaffReply);
+    automationEvents.on('booking_confirmed', handleBookingConfirmed);
+    automationEvents.on('booking_completed', handleBookingCompleted);
     automationEvents.on('inventory_low', handleInventoryLow);
     automationEvents.on('inventory_critical', handleInventoryCritical);
 };
@@ -71,6 +73,80 @@ const handleBookingCreated = async (data) => {
         }
     } catch (error) {
         console.error('Error handling booking_created:', error);
+    }
+};
+
+// Handler: Booking confirmed
+const handleBookingConfirmed = async (data) => {
+    const { workspaceId, booking, contact } = data;
+    console.log(`🔔 Booking confirmed handler for workspace ${workspaceId}. Contact email: ${contact?.email}`);
+    console.log(`📍 Booking ID: ${booking?._id}`);
+
+    try {
+        const automations = await Automation.find({
+            workspace: workspaceId,
+            trigger: 'booking_confirmed',
+            isActive: true,
+        });
+
+        if (automations.length === 0) {
+            // Default behavior if no automation is configured
+            const baseUrl = process.env.VITE_APP_URL || 'http://localhost:5173';
+            const dateStr = new Date(booking.dateTime).toLocaleString();
+            const subject = `Booking Confirmed: ${booking.serviceName}`;
+            const html = `
+                <h2>Your booking is confirmed!</h2>
+                <p>Hi ${contact.firstName},</p>
+                <p>We've confirmed your booking for <strong>${booking.serviceName}</strong>.</p>
+                <p><strong>Date & Time:</strong> ${dateStr}</p>
+                <p><strong>Duration:</strong> ${booking.duration} minutes</p>
+                <p><strong>Location:</strong> ${booking.locationType === 'online' ? 'Online Meeting' : booking.location || 'At our office'}</p>
+            `;
+
+            await sendEmail(workspaceId, contact.email, subject, html, html.replace(/<[^>]*>/g, ''));
+            await logSystemMessage(workspaceId, contact._id, `Booking Confirmed: ${booking.serviceName} for ${dateStr}`, 'email');
+        } else {
+            for (const automation of automations) {
+                await executeAutomation(automation, { booking, contact });
+            }
+        }
+    } catch (error) {
+        console.error('Error handling booking_confirmed:', error);
+    }
+};
+
+// Handler: Booking completed
+const handleBookingCompleted = async (data) => {
+    const { workspaceId, booking, contact } = data;
+
+    try {
+        const automations = await Automation.find({
+            workspace: workspaceId,
+            trigger: 'booking_completed',
+            isActive: true,
+        });
+
+        if (automations.length === 0) {
+            // Default behavior
+            const subject = `Booking Completed: ${booking.serviceName}`;
+            const html = `
+                <h2>Thank you!</h2>
+                <p>Hi ${contact.firstName},</p>
+                <p>Your booking for <strong>${booking.serviceName}</strong> has been marked as completed.</p>
+                <p>We hope you had a great experience!</p>
+                <br/>
+                <p>Feel free to reach out if you have any questions.</p>
+            `;
+
+            await sendEmail(workspaceId, contact.email, subject, html, html.replace(/<[^>]*>/g, ''));
+            await logSystemMessage(workspaceId, contact._id, `Booking Completed: ${booking.serviceName}`, 'email');
+        } else {
+            for (const automation of automations) {
+                await executeAutomation(automation, { booking, contact });
+            }
+        }
+    } catch (error) {
+        console.error('Error handling booking_completed:', error);
     }
 };
 
@@ -183,6 +259,36 @@ const checkScheduledAutomations = async () => {
     }
 };
 
+// Helper: Log system message to conversation
+const logSystemMessage = async (workspaceId, contactId, content, channel) => {
+    try {
+        let conversation = await Conversation.findOne({ workspace: workspaceId, contact: contactId });
+        if (!conversation) {
+            conversation = new Conversation({
+                workspace: workspaceId,
+                contact: contactId,
+                status: 'open',
+                messages: [],
+                unreadCount: 0
+            });
+        }
+
+        conversation.messages.push({
+            sender: 'system',
+            content,
+            channel: channel || 'internal',
+            sentAt: new Date(),
+            deliveryStatus: 'sent'
+        });
+
+        conversation.lastMessage = content.substring(0, 100);
+        conversation.lastMessageAt = new Date();
+        await conversation.save();
+    } catch (error) {
+        console.error('Failed to log system message to conversation:', error);
+    }
+};
+
 // Execute an automation
 const executeAutomation = async (automation, context) => {
     try {
@@ -211,7 +317,7 @@ const executeAutomation = async (automation, context) => {
             // A better approach for Flow B is to assume the template contains the link, OR we provide a variable 
             // that links to a "pending forms" page. 
             // For now, let's allow {{portalLink}} to the contact page which is safe.
-            const portalLink = `${baseUrl}/contact?workspace=${automation.workspace}`;
+            const portalLink = conversation ? `${baseUrl}/view-message/${conversation._id}` : `${baseUrl}/contact?workspace=${automation.workspace}`;
             message = message.replace('{{portalLink}}', portalLink);
 
             // If we really want {{formLink}}, we'd need a formId. 
@@ -220,7 +326,12 @@ const executeAutomation = async (automation, context) => {
 
         // Generic replacements
         const baseUrl = process.env.VITE_APP_URL || 'http://localhost:5173';
-        message = message.replace('{{workspaceLink}}', `${baseUrl}/contact?workspace=${automation.workspace}`);
+        const workspaceLink = conversation ? `${baseUrl}/view-message/${conversation._id}` : `${baseUrl}/contact?workspace=${automation.workspace}`;
+        message = message.replace('{{workspaceLink}}', workspaceLink);
+
+        if (conversation) {
+            message = message.replace('{{conversationLink}}', `${baseUrl}/view-message/${conversation._id}`);
+        }
 
         // Execute action
         switch (action) {
@@ -258,6 +369,16 @@ const executeAutomation = async (automation, context) => {
                     await conversation.save();
                 }
                 break;
+        }
+
+        // Log to Conversation if message was sent
+        if (result.success && contact && (action === 'send_email' || action === 'send_sms')) {
+            await logSystemMessage(
+                automation.workspace,
+                contact._id,
+                message,
+                action === 'send_email' ? 'email' : 'sms'
+            );
         }
 
         // Log execution

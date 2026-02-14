@@ -2,6 +2,7 @@ import mongoose from 'mongoose';
 
 const workspaceSchema = new mongoose.Schema({
     businessName: { type: String, required: true },
+    businessType: { type: String, required: false }, // Specific industry/niche
     address: { type: mongoose.Schema.Types.Mixed },
     timezone: { type: String, required: true, default: 'UTC' },
     contactEmail: { type: String, required: true },
@@ -35,6 +36,15 @@ const workspaceSchema = new mongoose.Schema({
     // Configuration
     hasContactForm: { type: Boolean, default: false },
     hasBookingTypes: { type: Boolean, default: false },
+
+    // Service Types (for Booking)
+    serviceTypes: [{
+        name: { type: String, required: true },
+        duration: { type: Number, required: true }, // in minutes
+        price: { type: Number, default: 0 },
+        description: String,
+        isActive: { type: Boolean, default: true },
+    }],
 
     createdAt: { type: Date, default: Date.now },
     updatedAt: { type: Date, default: Date.now },

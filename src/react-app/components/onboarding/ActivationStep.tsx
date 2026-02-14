@@ -39,7 +39,7 @@ export default function ActivationStep({ onNext }: ActivationStepProps) {
                             <span className="font-semibold text-purple-900">Communication</span>
                         </div>
                         <p className="text-sm text-purple-600 pl-11">
-                            Email integration configured via EmailJS
+                            Email integration configured via Gmail SMTP
                         </p>
                     </CardContent>
                 </Card>

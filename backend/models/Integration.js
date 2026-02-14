@@ -3,16 +3,14 @@ import mongoose from 'mongoose';
 const integrationSchema = new mongoose.Schema({
     workspace: { type: mongoose.Schema.Types.ObjectId, ref: 'Workspace', required: true },
 
-    // Email configuration (SendGrid)
+    // Email configuration (Gmail SMTP)
     email: {
-        provider: { type: String, default: 'emailjs' },
-        // EmailJS Credentials
-        serviceId: String,
-        templateId: String,
-        publicKey: String,
-        privateKey: String,
-        // SendGrid Legacy
-        apiKey: String,
+        provider: { type: String, default: 'gmail' },
+        // Gmail SMTP Credentials
+        smtpHost: { type: String, default: 'smtp.gmail.com' },
+        smtpPort: { type: Number, default: 587 },
+        smtpUser: String, // Gmail address
+        smtpPassword: String, // Gmail App Password
 
         fromEmail: String,
         fromName: String,

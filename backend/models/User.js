@@ -14,6 +14,10 @@ const userSchema = new mongoose.Schema({
         inventory: { type: Boolean, default: false },
     },
     isActive: { type: Boolean, default: true },
+    dismissedAlerts: [{
+        id: { type: String, required: true },
+        dismissedAt: { type: Date, default: Date.now }
+    }],
     createdAt: { type: Date, default: Date.now },
     updatedAt: { type: Date, default: Date.now },
 });

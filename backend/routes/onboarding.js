@@ -23,6 +23,7 @@ router.get('/status', authenticate, async (req, res) => {
             isActive: workspace.isActive,
             workspace: {
                 businessName: workspace.businessName,
+                businessType: workspace.businessType,
                 address: workspace.address,
                 timezone: workspace.timezone,
                 contactEmail: workspace.contactEmail,
@@ -40,13 +41,14 @@ router.get('/status', authenticate, async (req, res) => {
 router.post('/step1', authenticate, requireOwner, async (req, res) => {
     try {
         console.log('Step 1 update request:', req.body);
-        const { businessName, address, timezone, contactEmail, contactPhone } = req.body;
+        const { businessName, businessType, address, timezone, contactEmail, contactPhone } = req.body;
 
         const workspace = await Workspace.findByIdAndUpdate(
             req.user.workspace,
             {
                 $set: {
                     businessName,
+                    businessType,
                     address,
                     timezone,
                     contactEmail,
@@ -78,22 +80,23 @@ router.post('/step2', authenticate, requireOwner, async (req, res) => {
         // Configure email if provided
         if (email) {
             const emailConfig = {
-                serviceId: email.serviceId,
-                templateId: email.templateId,
-                publicKey: email.publicKey,
-                privateKey: email.privateKey, // Optional
+                smtpHost: email.smtpHost || 'smtp.gmail.com',
+                smtpPort: email.smtpPort || 587,
+                smtpUser: email.smtpUser,
+                smtpPassword: email.smtpPassword,
+                fromEmail: email.fromEmail,
                 fromName: email.fromName || 'Unified Ops'
             };
 
             // Test email connection (if we have minimum creds)
             let emailTest = { success: false };
-            if (email.serviceId && email.publicKey) {
+            if (email.smtpUser && email.smtpPassword) {
                 try {
                     const workspaceData = await Workspace.findById(req.user.workspace);
                     // Fallback if workspace not found or contactEmail missing
-                    const testTo = (workspaceData && workspaceData.contactEmail) ? workspaceData.contactEmail : 'test@example.com';
+                    const testTo = (workspaceData && workspaceData.contactEmail) ? workspaceData.contactEmail : email.smtpUser;
 
-                    console.log('Testing email connection to:', testTo);
+                    console.log('Testing Gmail SMTP connection to:', testTo);
                     emailTest = await testEmailConnection(emailConfig, testTo);
                     console.log('Email test result:', emailTest);
                 } catch (testErr) {
@@ -103,11 +106,12 @@ router.post('/step2', authenticate, requireOwner, async (req, res) => {
             }
 
             integration.email = {
-                provider: 'emailjs',
-                serviceId: email.serviceId,
-                templateId: email.templateId,
-                publicKey: email.publicKey,
-                privateKey: email.privateKey,
+                provider: 'gmail',
+                smtpHost: email.smtpHost || 'smtp.gmail.com',
+                smtpPort: email.smtpPort || 587,
+                smtpUser: email.smtpUser,
+                smtpPassword: email.smtpPassword,
+                fromEmail: email.fromEmail,
                 fromName: email.fromName,
                 isConfigured: emailTest.success,
                 isActive: emailTest.success,
@@ -182,12 +186,29 @@ router.post('/step3', authenticate, requireOwner, async (req, res) => {
 // Step 4: Set up booking types (mark as configured)
 router.post('/step4', authenticate, requireOwner, async (req, res) => {
     try {
+        const { serviceName, duration, description, price } = req.body;
+
+        const updateCallback = {
+            $set: { hasBookingTypes: true },
+            $max: { onboardingStep: 5 },
+        };
+
+        // If service details are provided, add to serviceTypes
+        if (serviceName && duration) {
+            updateCallback.$push = {
+                serviceTypes: {
+                    name: serviceName,
+                    duration: parseInt(duration),
+                    price: parseFloat(price) || 0,
+                    description: description || '',
+                    isActive: true
+                }
+            };
+        }
+
         const workspace = await Workspace.findByIdAndUpdate(
             req.user.workspace,
-            {
-                $set: { hasBookingTypes: true },
-                $max: { onboardingStep: 5 },
-            },
+            updateCallback,
             { new: true }
         );
 

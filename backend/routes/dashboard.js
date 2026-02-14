@@ -6,6 +6,7 @@ import Contact from '../models/Contact.js';
 import Conversation from '../models/Conversation.js';
 import { FormSubmission } from '../models/Form.js';
 import { Inventory } from '../models/Inventory.js';
+import User from '../models/User.js';
 
 const router = express.Router();
 
@@ -131,6 +132,17 @@ router.get('/activity', authenticate, checkWorkspaceActive, async (req, res) => 
 router.get('/alerts', authenticate, checkWorkspaceActive, async (req, res) => {
     try {
         const workspaceId = req.user.workspace;
+
+        // Refresh user to get latest dismissed alerts
+        // const user = await User.findById(req.user.id);
+        // optimization: req.user is already populated by authenticate middleware, 
+        // but let's make sure we have the dismissedAlerts field if it was just added schema-wise
+        // The authenticate middleware likely fetches the user. 
+        // Let's assume req.user has it or fetch if deeply nested needed.
+        // Actually, let's fetch strictly the dismissedAlerts to be safe.
+        // const userContext = await User.findById(req.user.id).select('dismissedAlerts');
+        const dismissedIds = req.user.dismissedAlerts ? req.user.dismissedAlerts.map(a => a.id) : [];
+
         const alerts = [];
 
         // Unconfirmed bookings today
@@ -145,8 +157,10 @@ router.get('/alerts', authenticate, checkWorkspaceActive, async (req, res) => {
             status: 'pending',
         });
 
-        if (unconfirmedBookings > 0) {
+        const bookingAlertId = `booking-pending-${today.toISOString().split('T')[0]}`;
+        if (unconfirmedBookings > 0 && !dismissedIds.includes(bookingAlertId)) {
             alerts.push({
+                id: bookingAlertId,
                 type: 'warning',
                 message: `${unconfirmedBookings} unconfirmed booking${unconfirmedBookings > 1 ? 's' : ''} today`,
                 link: '/bookings?status=pending',
@@ -161,11 +175,15 @@ router.get('/alerts', authenticate, checkWorkspaceActive, async (req, res) => {
         }).limit(3);
 
         criticalItems.forEach(item => {
-            alerts.push({
-                type: 'error',
-                message: `Critical: ${item.name} (${item.currentQuantity} ${item.unit})`,
-                link: '/inventory',
-            });
+            const alertId = `inventory-critical-${item._id}`;
+            if (!dismissedIds.includes(alertId)) {
+                alerts.push({
+                    id: alertId,
+                    type: 'error',
+                    message: `Critical: ${item.name} (${item.currentQuantity} ${item.unit})`,
+                    link: '/inventory',
+                });
+            }
         });
 
         // Overdue forms
@@ -174,8 +192,10 @@ router.get('/alerts', authenticate, checkWorkspaceActive, async (req, res) => {
             status: 'overdue',
         });
 
-        if (overdueForms > 0) {
+        const overdueFormAlertId = `forms-overdue-${today.toISOString().split('T')[0]}`;
+        if (overdueForms > 0 && !dismissedIds.includes(overdueFormAlertId)) {
             alerts.push({
+                id: overdueFormAlertId,
                 type: 'info',
                 message: `${overdueForms} form${overdueForms > 1 ? 's' : ''} overdue`,
                 link: '/forms?status=overdue',
@@ -184,7 +204,42 @@ router.get('/alerts', authenticate, checkWorkspaceActive, async (req, res) => {
 
         res.json({ alerts });
     } catch (error) {
+        console.error('Alerts error:', error);
         res.status(500).json({ error: 'Failed to fetch alerts' });
+    }
+});
+
+// Dismiss alert
+router.post('/alerts/:id/dismiss', authenticate, async (req, res) => {
+    try {
+        const { id } = req.params;
+
+        // Fetch full user document as req.user only contains token payload
+        const user = await User.findById(req.user.id);
+        if (!user) {
+            return res.status(404).json({ error: 'User not found' });
+        }
+
+        // Initialize if undefined (though schema default should handle this)
+        if (!user.dismissedAlerts) {
+            user.dismissedAlerts = [];
+        }
+
+        // Check if already dismissed
+        if (user.dismissedAlerts.some(a => a.id === id)) {
+            return res.json({ message: 'Alert already dismissed' });
+        }
+
+        user.dismissedAlerts.push({
+            id,
+            dismissedAt: new Date()
+        });
+
+        await user.save();
+        res.json({ message: 'Alert dismissed' });
+    } catch (error) {
+        console.error('Dismiss alert error:', error);
+        res.status(500).json({ error: 'Failed to dismiss alert' });
     }
 });
 

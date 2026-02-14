@@ -108,6 +108,12 @@ class ApiClient {
         return this.request('/dashboard/alerts');
     }
 
+    async dismissAlert(id: string) {
+        return this.request(`/dashboard/alerts/${id}/dismiss`, {
+            method: 'POST'
+        });
+    }
+
     // Contacts
     async getContacts() {
         return this.request('/contacts');
@@ -170,9 +176,35 @@ class ApiClient {
         });
     }
 
+    async updateFormTemplate(id: string, data: any) {
+        return this.request(`/forms/templates/${id}`, {
+            method: 'PUT',
+            body: JSON.stringify(data),
+        });
+    }
+
+    async deleteFormTemplate(id: string) {
+        return this.request(`/forms/templates/${id}`, {
+            method: 'DELETE',
+        });
+    }
+
     async getFormSubmissions(status?: string) {
         const query = status ? `?status=${status}` : '';
         return this.request(`/forms/submissions${query}`);
+    }
+
+    async deleteFormSubmission(id: string) {
+        return this.request(`/forms/submissions/${id}`, {
+            method: 'DELETE',
+        });
+    }
+
+    async sendForm(formId: string, email: string) {
+        return this.request(`/forms/send`, {
+            method: 'POST',
+            body: JSON.stringify({ formId, email })
+        });
     }
 
     async getPublicForm(id: string) {
@@ -245,11 +277,50 @@ class ApiClient {
         });
     }
 
+    async removeStaff(userId: string) {
+        return this.request(`/staff/${userId}`, {
+            method: 'DELETE',
+        });
+    }
+
     // Search
     async search(query: string, type?: string) {
         const params = new URLSearchParams({ q: query });
         if (type) params.append('type', type);
         return this.request(`/search?${params.toString()}`);
+    }
+
+    // Services
+    async getServices() {
+        return this.request('/services');
+    }
+
+    async createService(data: any) {
+        return this.request('/services', {
+            method: 'POST',
+            body: JSON.stringify(data),
+        });
+    }
+
+    async updateService(id: string, data: any) {
+        return this.request(`/services/${id}`, {
+            method: 'PUT',
+            body: JSON.stringify(data),
+        });
+    }
+
+    async deleteService(id: string) {
+        return this.request(`/services/${id}`, {
+            method: 'DELETE',
+        });
+    }
+
+    // Chatbot
+    async sendChatMessage(messages: { role: string; content: string }[]) {
+        return this.request('/chatbot', {
+            method: 'POST',
+            body: JSON.stringify({ messages }),
+        });
     }
 }
 

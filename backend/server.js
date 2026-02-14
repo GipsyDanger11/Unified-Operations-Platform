@@ -15,6 +15,8 @@ import publicRoutes from './routes/public.js';
 import integrationsRoutes from './routes/integrations.js';
 import adminRoutes from './routes/admin.js';
 import searchRoutes from './routes/search.js';
+import servicesRoutes from './routes/services.js';
+import chatbotRoutes from './routes/chatbot.js';
 import { startAutomationEngine } from './services/automationEngine.js';
 
 dotenv.config({ path: '../.env' });
@@ -51,6 +53,8 @@ app.use('/api/public', publicRoutes);
 app.use('/api/integrations', integrationsRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/search', searchRoutes);
+app.use('/api/services', servicesRoutes);
+app.use('/api/chatbot', chatbotRoutes);
 
 // Health check
 app.get('/health', (req, res) => {

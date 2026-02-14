@@ -17,7 +17,9 @@ const automationSchema = new mongoose.Schema({
             'form_pending_48h',
             'inventory_low',
             'inventory_critical',
-            'staff_reply'
+            'staff_reply',
+            'booking_confirmed',
+            'booking_completed'
         ],
         required: true
     },

@@ -11,12 +11,15 @@ import {
   TableHeader,
   TableRow
 } from "@/react-app/components/ui/table";
-import { FileText, Plus, ExternalLink, Clock, CheckCircle, Loader2 } from "lucide-react";
+import { FileText, Plus, ExternalLink, Clock, CheckCircle, Loader2, Trash2 } from "lucide-react";
 import { api } from "@/react-app/lib/api";
+import { CreateFormDialog } from "@/react-app/components/forms/CreateFormDialog";
+import { SubmissionDetailsDialog } from "@/react-app/components/forms/SubmissionDetailsDialog";
+import { toast } from "react-toastify";
 
 interface FormTemplate {
   _id: string;
-  title: string;
+  name: string;
   description: string;
   linkedServiceTypes: string[];
 }
@@ -38,25 +41,98 @@ interface FormSubmission {
 export default function FormsPage() {
   const [templates, setTemplates] = useState<FormTemplate[]>([]);
   const [submissions, setSubmissions] = useState<FormSubmission[]>([]);
+  const [activeTab, setActiveTab] = useState("submissions");
   const [loading, setLoading] = useState(true);
 
+
+  const fetchData = async () => {
+    setLoading(true);
+    try {
+      const [templatesData, submissionsData] = await Promise.all([
+        api.getFormTemplates(),
+        api.getFormSubmissions()
+      ]);
+      setTemplates(templatesData.forms || []);
+      setSubmissions(submissionsData.submissions || []);
+    } catch (error) {
+      console.error("Failed to fetch forms data:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const [templatesData, submissionsData] = await Promise.all([
-          api.getFormTemplates(),
-          api.getFormSubmissions()
-        ]);
-        setTemplates(templatesData);
-        setSubmissions(submissionsData);
-      } catch (error) {
-        console.error("Failed to fetch forms data:", error);
-      } finally {
-        setLoading(false);
-      }
-    };
     fetchData();
   }, []);
+
+  const handleDeleteTemplate = (templateId: string) => {
+    const toastId = toast(
+      <div>
+        <p className="font-medium text-gray-900 mb-1">Delete this form template?</p>
+        <p className="text-sm text-gray-500 mb-3">This action cannot be undone.</p>
+        <div className="flex gap-2 justify-end">
+          <button
+            className="px-3 py-1.5 text-sm rounded-md border border-gray-200 text-gray-600 hover:bg-gray-50 transition-colors"
+            onClick={() => toast.dismiss(toastId)}
+          >
+            Cancel
+          </button>
+          <button
+            className="px-3 py-1.5 text-sm rounded-md bg-red-600 text-white hover:bg-red-700 transition-colors"
+            onClick={async () => {
+              toast.dismiss(toastId);
+              try {
+                await api.deleteFormTemplate(templateId);
+                toast.success("Form template deleted successfully");
+                const templatesData = await api.getFormTemplates();
+                setTemplates(templatesData.forms || []);
+              } catch (error: any) {
+                console.error("Failed to delete template:", error);
+                toast.error(error.message || "Failed to delete form template");
+              }
+            }}
+          >
+            Confirm
+          </button>
+        </div>
+      </div>,
+      { autoClose: false, closeOnClick: false, draggable: false, closeButton: false }
+    );
+  };
+
+  const handleDeleteSubmission = (submissionId: string) => {
+    const toastId = toast(
+      <div>
+        <p className="font-medium text-gray-900 mb-1">Delete this submission?</p>
+        <p className="text-sm text-gray-500 mb-3">This action cannot be undone.</p>
+        <div className="flex gap-2 justify-end">
+          <button
+            className="px-3 py-1.5 text-sm rounded-md border border-gray-200 text-gray-600 hover:bg-gray-50 transition-colors"
+            onClick={() => toast.dismiss(toastId)}
+          >
+            Cancel
+          </button>
+          <button
+            className="px-3 py-1.5 text-sm rounded-md bg-red-600 text-white hover:bg-red-700 transition-colors"
+            onClick={async () => {
+              toast.dismiss(toastId);
+              try {
+                await api.deleteFormSubmission(submissionId);
+                toast.success("Submission deleted successfully");
+                setSubmissions(prev => prev.filter(s => s._id !== submissionId));
+              } catch (error: any) {
+                console.error("Failed to delete submission:", error);
+                toast.error(error.message || "Failed to delete submission");
+              }
+            }}
+          >
+            Confirm
+          </button>
+        </div>
+      </div>,
+      { autoClose: false, closeOnClick: false, draggable: false, closeButton: false }
+    );
+  };
 
   if (loading) {
     return (
@@ -73,12 +149,22 @@ export default function FormsPage() {
           <h1 className="text-3xl font-bold text-purple-950">Forms</h1>
           <p className="text-purple-700 mt-1">Manage intake forms, agreements, and view submissions.</p>
         </div>
-        <Button className="bg-purple-600 hover:bg-purple-700">
-          <Plus className="w-4 h-4 mr-2" /> Create Form
-        </Button>
+        <CreateFormDialog onFormCreated={() => {
+          // Re-fetch templates
+          const fetchData = async () => {
+            const templatesData = await api.getFormTemplates();
+            setTemplates(templatesData.forms || []);
+            setActiveTab("templates"); // Switch to templates tab
+          };
+          fetchData();
+        }}>
+          <Button className="bg-purple-600 hover:bg-purple-700">
+            <Plus className="w-4 h-4 mr-2" /> Create Form
+          </Button>
+        </CreateFormDialog>
       </div>
 
-      <Tabs defaultValue="submissions" className="w-full">
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
         <TabsList className="grid w-full max-w-md grid-cols-2 bg-purple-50">
           <TabsTrigger value="submissions" className="data-[state=active]:bg-white data-[state=active]:text-purple-700">Submissions</TabsTrigger>
           <TabsTrigger value="templates" className="data-[state=active]:bg-white data-[state=active]:text-purple-700">Templates</TabsTrigger>
@@ -109,7 +195,7 @@ export default function FormsPage() {
                           {sub.contact?.firstName} {sub.contact?.lastName}
                           <div className="text-xs text-gray-500">{sub.contact?.email}</div>
                         </TableCell>
-                        <TableCell>{sub.form?.title || "Unknown Form"}</TableCell>
+                        <TableCell>{sub.form?.name || "Unknown Form"}</TableCell>
                         <TableCell>
                           {new Date(sub.sentAt).toLocaleDateString()}
                         </TableCell>
@@ -125,9 +211,21 @@ export default function FormsPage() {
                           )}
                         </TableCell>
                         <TableCell className="text-right">
-                          <Button variant="ghost" size="sm" className="text-purple-600">
-                            View Details
-                          </Button>
+                          <div className="flex items-center justify-end gap-1">
+                            <SubmissionDetailsDialog submission={sub}>
+                              <Button variant="ghost" size="sm" className="text-purple-600">
+                                View Details
+                              </Button>
+                            </SubmissionDetailsDialog>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="text-gray-400 hover:text-red-600 h-8 w-8"
+                              onClick={() => handleDeleteSubmission(sub._id)}
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </Button>
+                          </div>
                         </TableCell>
                       </TableRow>
                     ))}
@@ -147,22 +245,41 @@ export default function FormsPage() {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {templates.length > 0 ? (
               templates.map((template) => (
-                <Card key={template._id} className="bg-white border-purple-100 hover:shadow-md transition-shadow">
+                <Card key={template._id} className="bg-white border-purple-100 hover:shadow-md transition-shadow h-full flex flex-col">
                   <CardHeader>
                     <CardTitle className="flex justify-between items-start text-lg">
-                      <span className="text-purple-900 truncate pr-2">{template.title}</span>
+                      <span className="text-purple-900 truncate pr-2">{template.name}</span>
                       <FileText className="w-5 h-5 text-purple-300 flex-shrink-0" />
                     </CardTitle>
                     <CardDescription className="line-clamp-2 min-h-[40px]">
                       {template.description || "No description"}
                     </CardDescription>
                   </CardHeader>
-                  <CardContent>
+                  <CardContent className="flex-grow flex flex-col justify-end">
                     <div className="text-xs text-gray-500 mb-4">
                       Linked to: {template.linkedServiceTypes?.length || 0} services
                     </div>
                     <div className="flex gap-2">
-                      <Button variant="outline" size="sm" className="w-full">Edit</Button>
+                      <CreateFormDialog
+                        initialData={template}
+                        onFormCreated={() => {
+                          const fetchData = async () => {
+                            const templatesData = await api.getFormTemplates();
+                            setTemplates(templatesData.forms || []);
+                          };
+                          fetchData();
+                        }}
+                      >
+                        <Button variant="outline" size="sm">Edit</Button>
+                      </CreateFormDialog>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="text-gray-400 hover:text-red-600"
+                        onClick={() => handleDeleteTemplate(template._id)}
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </Button>
                       <Button variant="ghost" size="icon" className="text-gray-400 hover:text-purple-600">
                         <ExternalLink className="w-4 h-4" />
                       </Button>

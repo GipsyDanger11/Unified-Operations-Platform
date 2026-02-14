@@ -110,6 +110,64 @@ router.patch('/:id/quantity', authenticate, checkWorkspaceActive, requirePermiss
     }
 });
 
+// Update inventory item details
+router.put('/:id', authenticate, checkWorkspaceActive, requirePermission('inventory'), async (req, res) => {
+    try {
+        const {
+            name,
+            description,
+            category,
+            unit,
+            lowStockThreshold,
+            criticalThreshold,
+            isActive
+        } = req.body;
+
+        const item = await Inventory.findOneAndUpdate(
+            { _id: req.params.id, workspace: req.user.workspace },
+            {
+                name,
+                description,
+                category,
+                unit,
+                lowStockThreshold,
+                criticalThreshold,
+                isActive,
+                updatedAt: new Date()
+            },
+            { new: true }
+        );
+
+        if (!item) {
+            return res.status(404).json({ error: 'Inventory item not found' });
+        }
+
+        res.json({ message: 'Inventory item updated', item });
+    } catch (error) {
+        console.error('Update inventory error:', error);
+        res.status(500).json({ error: 'Failed to update inventory item' });
+    }
+});
+
+// Delete inventory item
+router.delete('/:id', authenticate, checkWorkspaceActive, requirePermission('inventory'), async (req, res) => {
+    try {
+        const item = await Inventory.findOneAndDelete({
+            _id: req.params.id,
+            workspace: req.user.workspace
+        });
+
+        if (!item) {
+            return res.status(404).json({ error: 'Inventory item not found' });
+        }
+
+        res.json({ message: 'Inventory item deleted' });
+    } catch (error) {
+        console.error('Delete inventory error:', error);
+        res.status(500).json({ error: 'Failed to delete inventory item' });
+    }
+});
+
 // Get inventory alerts
 router.get('/alerts', authenticate, checkWorkspaceActive, async (req, res) => {
     try {

@@ -1,6 +1,8 @@
 import Integration from '../models/Integration.js';
+import nodemailer from 'nodemailer';
 
 export const sendEmail = async (workspaceId, to, subject, htmlContent, textContent) => {
+    console.log(`📧 Attempting to send email to: ${to} (Subject: ${subject})`);
     try {
         // Get workspace integration settings
         const integration = await Integration.findOne({ workspace: workspaceId });
@@ -10,48 +12,37 @@ export const sendEmail = async (workspaceId, to, subject, htmlContent, textConte
             return { success: false, error: 'Email not configured' };
         }
 
-        // Check provider (support legacy SendGrid if needed, but prioritize EmailJS structure)
-        if (integration.email.provider === 'sendgrid') {
-            // ... legacy SendGrid code if we wanted to keep it, but user asked to MIGRATE.
-            // So we assume EmailJS. 
-            // If they still have sendgrid data but provider is 'emailjs' (default now), we use EmailJS.
+        const { smtpHost, smtpPort, smtpUser, smtpPassword, fromEmail, fromName } = integration.email;
+
+        if (!smtpHost || !smtpPort || !smtpUser || !smtpPassword) {
+            return { success: false, error: 'Missing Gmail SMTP credentials' };
         }
 
-        const { serviceId, templateId, publicKey, privateKey, fromName } = integration.email;
-
-        if (!serviceId || !templateId || !publicKey) {
-            return { success: false, error: 'Missing EmailJS credentials' };
-        }
-
-        const templateParams = {
-            to_email: to,
-            from_name: fromName || "Unified Ops",
-            subject: subject,
-            message: textContent || htmlContent.replace(/<[^>]*>/g, ''), // Plain text for simplicity/safety
-            html_message: htmlContent, // In case template uses this
-        };
-
-        const response = await fetch('https://api.emailjs.com/api/v1.0/email/send', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
+        // Create nodemailer transporter
+        const transporter = nodemailer.createTransport({
+            host: smtpHost,
+            port: smtpPort,
+            secure: smtpPort === 465, // true for 465, false for other ports
+            auth: {
+                user: smtpUser,
+                pass: smtpPassword,
             },
-            body: JSON.stringify({
-                service_id: serviceId,
-                template_id: templateId,
-                user_id: publicKey,
-                accessToken: privateKey, // Secure sending
-                template_params: templateParams,
-            }),
         });
 
-        if (!response.ok) {
-            const errorText = await response.text();
-            throw new Error(`EmailJS Error: ${response.status} ${errorText}`);
-        }
+        // Email options
+        const mailOptions = {
+            from: `"${fromName || 'Unified Ops'}" <${fromEmail || smtpUser}>`,
+            to: to,
+            subject: subject,
+            text: textContent || htmlContent.replace(/<[^>]*>/g, ''), // Plain text fallback
+            html: htmlContent,
+        };
 
-        console.log(`✅ Email sent to ${to} via EmailJS`);
-        return { success: true };
+        // Send email
+        const info = await transporter.sendMail(mailOptions);
+
+        console.log(`✅ Email sent to ${to} via Gmail SMTP - Message ID: ${info.messageId}`);
+        return { success: true, messageId: info.messageId };
 
     } catch (error) {
         console.error('❌ Email send error:', error);
@@ -61,35 +52,39 @@ export const sendEmail = async (workspaceId, to, subject, htmlContent, textConte
 
 export const testEmailConnection = async (config, testTo) => {
     try {
-        const { serviceId, templateId, publicKey, privateKey, fromName } = config;
+        const { smtpHost, smtpPort, smtpUser, smtpPassword, fromEmail, fromName } = config;
 
-        const templateParams = {
-            to_email: testTo,
-            from_name: fromName || "Unified Ops",
-            subject: 'Test Email - Unified Operations Platform',
-            message: 'This is a test email to verify your EmailJS configuration.',
-        };
-
-        const response = await fetch('https://api.emailjs.com/api/v1.0/email/send', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-                service_id: serviceId,
-                template_id: templateId,
-                user_id: publicKey,
-                accessToken: privateKey,
-                template_params: templateParams,
-            }),
-        });
-
-        if (!response.ok) {
-            const errorText = await response.text();
-            throw new Error(`EmailJS Error: ${errorText}`);
+        if (!smtpHost || !smtpPort || !smtpUser || !smtpPassword) {
+            return { success: false, error: 'Missing Gmail SMTP credentials' };
         }
 
-        return { success: true, message: 'Test email sent successfully' };
+        // Create nodemailer transporter
+        const transporter = nodemailer.createTransport({
+            host: smtpHost,
+            port: smtpPort,
+            secure: smtpPort === 465,
+            auth: {
+                user: smtpUser,
+                pass: smtpPassword,
+            },
+        });
+
+        // Verify connection
+        await transporter.verify();
+
+        // Send test email
+        const mailOptions = {
+            from: `"${fromName || 'Unified Ops'}" <${fromEmail || smtpUser}>`,
+            to: testTo,
+            subject: 'Test Email - Unified Operations Platform',
+            text: 'This is a test email to verify your Gmail SMTP configuration.',
+            html: '<p>This is a test email to verify your <strong>Gmail SMTP</strong> configuration.</p>',
+        };
+
+        const info = await transporter.sendMail(mailOptions);
+
+        console.log(`✅ Test email sent successfully - Message ID: ${info.messageId}`);
+        return { success: true, message: 'Test email sent successfully', messageId: info.messageId };
 
     } catch (error) {
         console.error('Email test failed:', error);

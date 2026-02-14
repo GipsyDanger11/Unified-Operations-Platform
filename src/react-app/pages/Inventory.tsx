@@ -13,6 +13,17 @@ import {
   DialogTrigger,
 } from "@/react-app/components/ui/dialog";
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/react-app/components/ui/alert-dialog";
+import { toast } from "react-toastify";
+import {
   Table,
   TableBody,
   TableCell,
@@ -30,6 +41,7 @@ interface InventoryItem {
   currentQuantity: number;
   unit: string;
   lowStockThreshold: number;
+  criticalThreshold: number;
   category?: string;
   updatedAt: string;
 }
@@ -40,13 +52,15 @@ export default function InventoryPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [currentItem, setCurrentItem] = useState<Partial<InventoryItem> | null>(null);
+  const [itemToDelete, setItemToDelete] = useState<InventoryItem | null>(null);
   const [saving, setSaving] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
   const fetchInventory = async () => {
     try {
-      const data = await api.getInventory();
-      setItems(Array.isArray(data) ? data : []);
+      const response = await api.getInventory();
+      setItems(Array.isArray(response.items) ? response.items : []);
     } catch (error: any) {
       console.error("Failed to fetch inventory:", error);
       setItems([]);
@@ -68,27 +82,43 @@ export default function InventoryPage() {
     try {
       if (currentItem._id) {
         await api.updateInventoryItem(currentItem._id, currentItem);
+        toast.success("Inventory item updated successfully");
       } else {
         await api.createInventoryItem(currentItem);
+        toast.success("Inventory item created successfully");
       }
       setIsDialogOpen(false);
       fetchInventory();
     } catch (error) {
       console.error("Failed to save item:", error);
+      toast.error("Failed to save item. Please try again.");
     } finally {
       setSaving(false);
     }
   };
 
-  const handleDelete = async (id: string) => {
-    if (!confirm("Are you sure you want to delete this item?")) return;
+  const handleDeleteClick = (item: InventoryItem) => {
+    setItemToDelete(item);
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!itemToDelete) return;
+
+    setDeleting(true);
     try {
-      await api.deleteInventoryItem(id);
+      await api.deleteInventoryItem(itemToDelete._id);
+      toast.success("Inventory item deleted successfully");
       fetchInventory();
     } catch (error) {
       console.error("Failed to delete item:", error);
+      toast.error("Failed to delete item. Please try again.");
+    } finally {
+      setDeleting(false);
+      setItemToDelete(null);
     }
   };
+
+
 
   const openEdit = (item: InventoryItem) => {
     setCurrentItem(item);
@@ -100,7 +130,8 @@ export default function InventoryPage() {
       name: "",
       currentQuantity: 0,
       unit: "units",
-      lowStockThreshold: 5,
+      lowStockThreshold: 10,
+      criticalThreshold: 5,
       category: "General"
     });
     setIsDialogOpen(true);
@@ -187,6 +218,17 @@ export default function InventoryPage() {
                     />
                     <p className="text-[10px] text-gray-500">Alerts sent when stock drops below this.</p>
                   </div>
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium">Critical Threshold</label>
+                    <Input
+                      type="number"
+                      value={currentItem?.criticalThreshold || 0}
+                      onChange={e => setCurrentItem({ ...currentItem, criticalThreshold: parseInt(e.target.value) })}
+                      min="0"
+                      required
+                    />
+                    <p className="text-[10px] text-red-500">Urgent alerts sent below this level.</p>
+                  </div>
                   <div className="space-y-2 col-span-2">
                     <label className="text-sm font-medium">Description (Optional)</label>
                     <Input
@@ -226,6 +268,32 @@ export default function InventoryPage() {
           </div>
         </CardHeader>
         <CardContent className="p-0">
+          <AlertDialog open={!!itemToDelete} onOpenChange={(open) => !open && setItemToDelete(null)}>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                <AlertDialogDescription>
+                  This will properly delete <span className="font-semibold text-purple-900">{itemToDelete?.name}</span> from your inventory.
+                  This action cannot be undone.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel disabled={deleting}>Cancel</AlertDialogCancel>
+                <AlertDialogAction
+                  onClick={(e) => {
+                    e.preventDefault();
+                    handleConfirmDelete();
+                  }}
+                  disabled={deleting}
+                  className="bg-red-600 hover:bg-red-700"
+                >
+                  {deleting ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Trash2 className="w-4 h-4 mr-2" />}
+                  Delete Item
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+
           {loading ? (
             <div className="flex justify-center items-center py-20">
               <Loader2 className="w-8 h-8 animate-spin text-purple-600" />
@@ -275,7 +343,7 @@ export default function InventoryPage() {
                         <Button variant="ghost" size="icon" onClick={() => openEdit(item)} className="h-8 w-8 text-gray-500 hover:text-purple-600">
                           <Edit className="w-4 h-4" />
                         </Button>
-                        <Button variant="ghost" size="icon" onClick={() => handleDelete(item._id)} className="h-8 w-8 text-gray-500 hover:text-red-600">
+                        <Button variant="ghost" size="icon" onClick={() => handleDeleteClick(item)} className="h-8 w-8 text-gray-500 hover:text-red-600">
                           <Trash2 className="w-4 h-4" />
                         </Button>
                       </div>

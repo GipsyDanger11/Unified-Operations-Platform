@@ -3,7 +3,7 @@ import { Card, CardContent } from "@/react-app/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/react-app/components/ui/table";
 import { Badge } from "@/react-app/components/ui/badge";
 import { Button } from "@/react-app/components/ui/button";
-import { Loader2, Calendar, Clock, CheckCircle, XCircle } from "lucide-react";
+import { Loader2, Calendar, Clock, CheckCircle, XCircle, CalendarPlus } from "lucide-react";
 import { api } from "@/react-app/lib/api";
 
 interface Booking {
@@ -15,6 +15,8 @@ interface Booking {
     phone?: string;
   };
   serviceType: string;
+  serviceName?: string;
+  duration?: number;
   dateTime: string;
   status: 'pending' | 'confirmed' | 'cancelled' | 'completed' | 'no-show';
   customerNotes?: string;
@@ -31,8 +33,8 @@ export default function BookingsPage() {
     try {
       // API supports status filtering
       const params = filter !== "all" ? { status: filter } : {};
-      const data = await api.getBookings(params);
-      setBookings(Array.isArray(data) ? data : []);
+      const response = await api.getBookings(params);
+      setBookings(Array.isArray(response.bookings) ? response.bookings : []);
     } catch (error) {
       console.error("Failed to fetch bookings:", error);
       setBookings([]);
@@ -60,6 +62,22 @@ export default function BookingsPage() {
     cancelled: "bg-red-100 text-red-800",
     completed: "bg-green-100 text-green-800",
     "no-show": "bg-gray-100 text-gray-800",
+  };
+
+  const addToGoogleCalendar = (booking: Booking) => {
+    const start = new Date(booking.dateTime);
+    const durationMins = booking.duration || 60;
+    const end = new Date(start.getTime() + durationMins * 60000);
+
+    const formatDate = (d: Date) =>
+      d.toISOString().replace(/[-:]/g, "").replace(/\.\d{3}/, "");
+
+    const title = `${booking.serviceName || booking.serviceType} - ${booking.contact.firstName} ${booking.contact.lastName}`;
+    const details = `Customer: ${booking.contact.firstName} ${booking.contact.lastName}\nEmail: ${booking.contact.email}${booking.contact.phone ? `\nPhone: ${booking.contact.phone}` : ""}${booking.customerNotes ? `\nNotes: ${booking.customerNotes}` : ""}`;
+
+    const url = `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent(title)}&dates=${formatDate(start)}/${formatDate(end)}&details=${encodeURIComponent(details)}`;
+
+    window.open(url, "_blank");
   };
 
   return (
@@ -129,23 +147,26 @@ export default function BookingsPage() {
                       </Badge>
                     </TableCell>
                     <TableCell className="text-right">
-                      {booking.status === 'pending' && (
-                        <div className="flex justify-end gap-2">
-                          <Button size="sm" variant="outline" className="h-8 w-8 p-0 text-green-600 hover:text-green-700 hover:bg-green-50 border-green-200" onClick={() => handleStatusUpdate(booking._id, 'confirmed')}>
-                            <CheckCircle className="w-4 h-4" />
-                          </Button>
-                          <Button size="sm" variant="outline" className="h-8 w-8 p-0 text-red-600 hover:text-red-700 hover:bg-red-50 border-red-200" onClick={() => handleStatusUpdate(booking._id, 'cancelled')}>
-                            <XCircle className="w-4 h-4" />
-                          </Button>
-                        </div>
-                      )}
-                      {booking.status === 'confirmed' && (
-                        <div className="flex justify-end gap-2">
+                      <div className="flex justify-end gap-2">
+                        <Button size="sm" variant="outline" className="h-8 w-8 p-0 text-purple-600 hover:text-purple-700 hover:bg-purple-50 border-purple-200" title="Add to Google Calendar" onClick={() => addToGoogleCalendar(booking)}>
+                          <CalendarPlus className="w-4 h-4" />
+                        </Button>
+                        {booking.status === 'pending' && (
+                          <>
+                            <Button size="sm" variant="outline" className="h-8 w-8 p-0 text-green-600 hover:text-green-700 hover:bg-green-50 border-green-200" onClick={() => handleStatusUpdate(booking._id, 'confirmed')}>
+                              <CheckCircle className="w-4 h-4" />
+                            </Button>
+                            <Button size="sm" variant="outline" className="h-8 w-8 p-0 text-red-600 hover:text-red-700 hover:bg-red-50 border-red-200" onClick={() => handleStatusUpdate(booking._id, 'cancelled')}>
+                              <XCircle className="w-4 h-4" />
+                            </Button>
+                          </>
+                        )}
+                        {booking.status === 'confirmed' && (
                           <Button size="sm" variant="outline" className="h-8 text-xs border-purple-200" onClick={() => handleStatusUpdate(booking._id, 'completed')}>
                             Mark Complete
                           </Button>
-                        </div>
-                      )}
+                        )}
+                      </div>
                     </TableCell>
                   </TableRow>
                 ))}

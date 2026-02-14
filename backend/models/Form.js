@@ -32,7 +32,7 @@ const formSchema = new mongoose.Schema({
 const formSubmissionSchema = new mongoose.Schema({
     workspace: { type: mongoose.Schema.Types.ObjectId, ref: 'Workspace', required: true },
     form: { type: mongoose.Schema.Types.ObjectId, ref: 'Form', required: true },
-    contact: { type: mongoose.Schema.Types.ObjectId, ref: 'Contact', required: true },
+    contact: { type: mongoose.Schema.Types.ObjectId, ref: 'Contact' },
     booking: { type: mongoose.Schema.Types.ObjectId, ref: 'Booking' },
 
     // Submission data
